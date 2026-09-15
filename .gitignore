@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# Training artifacts: keep the manifest, drop the weights
+runs/**/*.npz
+runs/**/*.pt
+runs/**/*.pth
+runs/**/*.ckpt
+runs/**/checkpoint_*
+!runs/**/config.json
+!runs/**/metrics.csv
+!runs/**/summary.md
+
+# Precomputed tables — regenerable, ~1 MB+
+src/game2048/_tables_cache.npy
+
+# Local
+.DS_Store
+.idea/
+.vscode/
+*.log
