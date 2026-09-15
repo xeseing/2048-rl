@@ -108,11 +108,20 @@ Agents see only this. If an agent imports `bitboard` directly, that is a bug.
 | Edge-order test | `[2,2,2,0]` left is `[4,2,0,0]` | must pass |
 | Illegal-move test | No board change → no spawn, no score, raises | must pass |
 | Spawn distribution | 100k spawns: P(4) in [0.09, 0.11]; empty cells uniform (chi-square p > 0.01) | must pass |
-| Score invariant | Final score == sum of all merge rewards == (sum of tiles) - (spawn values sum) | must pass |
+| Score invariant | Final score == sum of all merge rewards == Σ w(tile) - Σ w(spawned), where w(v) = v·(log₂v - 1) | must pass |
 | Determinism | Same seed → byte-identical game transcript, twice | must pass |
 | **Differential test** | 100k random games: naive and bitboard produce identical boards, scores, terminations | must pass |
 | Throughput bench | `bench/engine_bench.py` | **≥ 200,000 moves/sec** (pure Python + numpy) |
 | Eval harness | 1000 seeded games → mean/median/max score, max-tile histogram, 2048/4096 rate | must produce a table |
+
+**On the score invariant.** The unweighted form — `score == sum(tiles) - sum(spawned)`
+— is identically zero and was corrected on 2026-09-15 (ADR-010). A merge turns `a + a`
+into `2a`, so a move never changes the board's tile sum; the tile sum therefore always
+equals the sum of everything ever spawned, and their difference is always 0. Weighting
+each tile by `w(v) = v·(log₂v - 1)` fixes it: `w(2) = 0`, `w(4) = 4`, `w(8) = 16`,
+`w(16) = 48`, and merging two `v`s into `2v` raises the board's total weight by exactly
+`2v` — which is exactly what that merge adds to the score. Subtracting the weight of the
+spawned tiles removes the head start that spawned 4s get for free.
 
 The differential test is the backbone. Once it holds, no engine bug can hide.
 
