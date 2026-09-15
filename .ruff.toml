@@ -1,0 +1,5 @@
+# Ruff >=0.16 formats Python code blocks inside Markdown. SPECS.md is a frozen
+# contract document, not source: the formatter does not get a vote on it.
+# TASK-01 note: keep ruff config HERE, not in pyproject.toml — .ruff.toml wins
+# over [tool.ruff] and a second copy would silently do nothing.
+extend-exclude = ["*.md"]
