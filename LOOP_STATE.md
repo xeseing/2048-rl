@@ -14,8 +14,8 @@
 | Task ID | Description | Priority | Verification Method | Status | PR / Commit |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `TASK-00` | Git init, GitHub repo created, `.gitignore`, CI + nightly workflows, PR template, branch protection on `main` | P0 | `gh repo view` succeeds; CI green on first PR | [x] DONE | #1 (29993a6) |
-| `TASK-01` | Repo skeleton, `pyproject.toml` (`game2048` package + `[dev]` extra), ruff, pytest, one trivial passing test; adds the `test` job to `ci.yml` | P0 | `pytest -q` exits 0; `ruff check .` + `ruff format --check .` clean | [x] DONE | #2 |
-| `TASK-02` | Naive engine: `move_left` + rotations, spawn, score, game-over | P0 | Golden move tests, merge-once, edge-order | [ ] PENDING | — |
+| `TASK-01` | Repo skeleton, `pyproject.toml` (`game2048` package + `[dev]` extra), ruff, pytest, one trivial passing test; adds the `test` job to `ci.yml` | P0 | `pytest -q` exits 0; `ruff check .` + `ruff format --check .` clean | [x] DONE | #2 (1b1402e) |
+| `TASK-02` | Naive engine: `move_left` + rotations, spawn, score, game-over | P0 | Golden move tests, merge-once, edge-order | [x] DONE | #3 |
 | `TASK-03` | Spawn + determinism tests (0.9/0.1, uniform empties, seeded replay) | P0 | chi-square p > 0.01; identical transcripts | [ ] PENDING | — |
 | `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises | [ ] PENDING | — |
 | `TASK-05` | Terminal render + `2048rl play` (human playable) | P2 | Manual: play one game to game-over | [ ] PENDING | — |
@@ -58,11 +58,11 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-01`
-- **Branch:** `task/01-skeleton` (#2)
+### Current Active Task: `TASK-02`
+- **Branch:** `task/02-naive-engine` (#3)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 1 passed; `ruff check .` → All checks
-  passed; `ruff format --check .` → 2 files already formatted.
+- **Last Verification Result:** `pytest -q` → 30 passed in 0.03s; `ruff check .` → All
+  checks passed; `ruff format --check .` → 4 files already formatted.
 - **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
 - **Corrective Action Plan:** `None` — awaiting merge approval.
@@ -72,7 +72,7 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 1 / 1
+- **Passing Tests:** 30 / 30
 - **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** — moves/sec (gate: 200,000)
 - **Differential Test:** NOT RUN
