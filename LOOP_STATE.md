@@ -13,8 +13,8 @@
 
 | Task ID | Description | Priority | Verification Method | Status | PR / Commit |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `TASK-00` | Git init, GitHub repo created, `.gitignore`, CI + nightly workflows, PR template, branch protection on `main` | P0 | `gh repo view` succeeds; CI green on first PR | [~] IN PROGRESS | `task/00-repo-setup` |
-| `TASK-01` | Repo skeleton, `pyproject.toml` (`game2048` package + `[dev]` extra), ruff, pytest, one trivial passing test; adds the `test` job to `ci.yml` | P0 | `pytest -q` exits 0; `ruff check .` + `ruff format --check .` clean | [ ] PENDING | — |
+| `TASK-00` | Git init, GitHub repo created, `.gitignore`, CI + nightly workflows, PR template, branch protection on `main` | P0 | `gh repo view` succeeds; CI green on first PR | [x] DONE | #1 (29993a6) |
+| `TASK-01` | Repo skeleton, `pyproject.toml` (`game2048` package + `[dev]` extra), ruff, pytest, one trivial passing test; adds the `test` job to `ci.yml` | P0 | `pytest -q` exits 0; `ruff check .` + `ruff format --check .` clean | [x] DONE | #2 |
 | `TASK-02` | Naive engine: `move_left` + rotations, spawn, score, game-over | P0 | Golden move tests, merge-once, edge-order | [ ] PENDING | — |
 | `TASK-03` | Spawn + determinism tests (0.9/0.1, uniform empties, seeded replay) | P0 | chi-square p > 0.01; identical transcripts | [ ] PENDING | — |
 | `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises | [ ] PENDING | — |
@@ -22,7 +22,7 @@
 | `TASK-06` | `tables.py`: 65536-row tables built from the naive oracle | P0 | Table entries == naive row moves, all 65536 | [ ] PENDING | — |
 | `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [ ] PENDING | — |
 | `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [ ] PENDING | — |
-| `TASK-09` | Throughput benchmark; adds the throughput gate to `ci.yml` and the heavy steps to `nightly.yml` | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [ ] PENDING | — |
+| `TASK-09` | Throughput benchmark; adds the throughput gate to `ci.yml` and the heavy steps to `nightly.yml`; **re-enables nightly's `schedule:` trigger**, commented out in TASK-01 because the modules it invokes did not exist | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [ ] PENDING | — |
 | `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [ ] PENDING | — |
 | `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [ ] PENDING | — |
 | `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [ ] PENDING | — |
@@ -58,13 +58,12 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-00`
-- **Branch:** `task/00-repo-setup` (PR #1)
+### Current Active Task: `TASK-01`
+- **Branch:** `task/01-skeleton` (#2)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `lint` pass, `secret-scan` pass. The `test` job was
-  deleted from `ci.yml`: it invoked `bench.differential` and `bench.engine_bench`,
-  which do not exist until TASK-08/09, so it could not go green before TASK-09.
-- **Command Run:** `gh pr checks 1`
+- **Last Verification Result:** `pytest -q` → 1 passed; `ruff check .` → All checks
+  passed; `ruff format --check .` → 2 files already formatted.
+- **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
 - **Corrective Action Plan:** `None` — awaiting merge approval.
 
@@ -72,9 +71,9 @@ or slow engine is the single most expensive mistake available in this project.
 
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
-- **CI Status on `main`:** `lint` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 0 / 0
-- **Lint Status:** —
+- **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
+- **Passing Tests:** 1 / 1
+- **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** — moves/sec (gate: 200,000)
 - **Differential Test:** NOT RUN
 - **Best Agent:** — (mean score —, 2048 rate —)

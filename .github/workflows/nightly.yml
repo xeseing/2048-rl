@@ -1,8 +1,12 @@
 name: Nightly heavy gates
 
 on:
-  schedule:
-    - cron: "0 2 * * *"
+  # schedule: disabled until TASK-09. The heavy steps below invoke
+  # game2048.bench.* and game2048.train.*, which do not exist yet, so this
+  # workflow cannot pass — and a nightly that fails every night teaches
+  # everyone to ignore nightly failures. TASK-09 uncomments these two lines.
+  # schedule:
+  #   - cron: "0 2 * * *"
   workflow_dispatch:
 
 jobs:

@@ -53,3 +53,9 @@ Format:
 - **Decision:** `.ruff.toml` with `extend-exclude = ["*.md"]`, and pin `ruff==0.16.7` in `ci.yml`.
 - **Rejected:** Reformatting SPECS.md to satisfy the formatter — the spec is the contract; a formatter's defaults are not a reason to edit it. Also rejected leaving ruff unpinned: a `pip install ruff` that silently changes behavior means CI can go red with no commit to blame, which is the worst kind of red.
 - **Consequence:** Ruff config lives in `.ruff.toml` for the life of the repo. `.ruff.toml` takes precedence over `[tool.ruff]` in `pyproject.toml`, so TASK-01 must NOT add a second config block there — it would be silently ignored.
+
+### ADR-008 — Hatchling, version single-sourced from `__init__.py`, no console script yet (2026-09-15)
+- **Context:** TASK-01 needed a build backend, a version, and a decision about whether to declare the `2048rl` entry point that SPECS §6.2 freezes.
+- **Decision:** Hatchling with `packages = ["src/game2048"]`, and `dynamic = ["version"]` reading `src/game2048/__init__.py`. No `[project.scripts]` block yet: `game2048/app.py` does not exist until TASK-19.
+- **Rejected:** A static `version = "0.0.0"` in `pyproject.toml` alongside `__version__` in the package — two copies drift, and they drift silently until a release ships a wheel whose version disagrees with its tag, which is exactly when it is most expensive. Also rejected declaring `2048rl = "game2048.app:main"` now: `pip install .` would succeed and the command would then crash on a missing module, which is a worse failure than the command simply not existing yet.
+- **Consequence:** Bump the version by editing `__version__` only. TASK-19 adds `[project.scripts]` at the same time it adds `app.py`, so the entry point never points at nothing.
