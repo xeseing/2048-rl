@@ -136,7 +136,7 @@ Conventional Commits, with the task ID, and — this is the part that matters he
 <why, if not obvious from the summary>
 
 Task: TASK-08
-Verified: make diff-test -> 100000 games, 0 divergences
+Verified: python -m game2048.bench.differential --games 100000 --seed 7 -> 0 divergences
 ```
 
 Types: `feat` `fix` `test` `perf` `refactor` `docs` `chore` `exp`
@@ -157,14 +157,14 @@ Throughput went 180k -> 1.4M moves/sec. The tuple allocation in the
 inner loop dominated the profile.
 
 Task: TASK-09
-Verified: make bench -> 1,412,003 moves/sec (gate: 200,000)
+Verified: python -m game2048.bench.engine_bench --seconds 30 --gate 200000 -> 1,412,003 moves/sec
 ```
 
 ```
 exp(ntuple): 4x6-tuple run, alpha=0.1 decaying
 
 Task: TASK-13
-Verified: make eval AGENT=ntuple N=1000 -> mean 43,118, 2048 rate 94.2%
+Verified: 2048rl eval --agent ntuple --games 1000 -> mean 43,118, 2048 rate 94.2%
 Run: runs/td-04/
 ```
 

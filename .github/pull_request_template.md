@@ -8,12 +8,12 @@ TASK-XX — <one line>
 Paste the actual command and its actual output. Not a summary.
 
 ```
-$ make test
+> pytest -q
 ...
 ```
 
-- [ ] `make test` passes
-- [ ] `make lint` clean
+- [ ] `pytest -q` passes
+- [ ] `ruff check .` and `ruff format --check .` clean
 - [ ] `LOOP_STATE.md` updated (status + commit)
 - [ ] `memory/` updated if anything was learned (FACTS / DECISIONS / FAILURES / EXPERIMENTS)
 - [ ] No weights, secrets, or `.env` in the diff

@@ -6,16 +6,19 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 
 ---
 
-(empty — no code exists yet)
-
 - `ruff format` (>=0.16) formats Python code blocks inside Markdown files. Repo excludes
   `*.md` via `.ruff.toml`. Config must stay in `.ruff.toml`, never `pyproject.toml`:
-  `.ruff.toml` wins and would shadow it. (ADR-002)
+  `.ruff.toml` wins and would shadow it. (ADR-007)
 - CI pins `ruff==0.16.7`. Unpinned linters make CI red with no commit to blame.
 - Dev machine (win32): Python 3.11.7, numpy 2.4.4, pytest 9.1.1 already importable.
-  `make` is NOT installed — every `make <target>` gate in CLAUDE.md is unrunnable
-  locally until that is resolved. CI (ubuntu) has make but never calls it; `ci.yml`
-  and `nightly.yml` invoke the underlying commands directly.
-- CI `test` job runs `python -m bench.differential` and `python -m bench.engine_bench`
-  on every PR. Those modules do not exist until TASK-08/TASK-09, so the `test` job is
-  red on every PR from TASK-00 through TASK-07 as `ci.yml` is currently written.
+  `make` is NOT installed and there is no Makefile — every gate is spelled as the raw
+  command it runs. The shell is PowerShell 5.1, where `&&` is a parse error, so chained
+  commands are written one per line.
+- `ci.yml` runs `lint` + `secret-scan` only as of TASK-00. The deleted `test` job
+  invoked `bench.differential` and `bench.engine_bench`, which do not exist until
+  TASK-08/09, so it could not have gone green before TASK-09. Each task now adds its own
+  gate in its own PR; no `hashFiles` guards, because a skipped gate reports green while
+  testing nothing. (CLAUDE.md version-control rule 9)
+- The only importable root is `game2048`; `agents`, `train` and `bench` are subpackages
+  of it. A `python -m` path starting `src.` or bare `bench.` does not work from an
+  installed wheel. (ADR-006)

@@ -46,8 +46,13 @@ Random and expectimax agents exist only as the floor and ceiling to measure agai
 
 ## Development
 
-```bash
-make setup && make ci
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+pytest -q
+ruff check .
+ruff format --check .
 ```
 
 See `CLAUDE.md` for the working protocol, `SPECS.md` for the technical contract, and

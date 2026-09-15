@@ -71,7 +71,7 @@ Never start editing code before step 8.
 ## Hard constraints
 
 - Python 3.11+. `numpy` and `pytest` are the only dependencies until Track B; PyTorch
-  arrives only at TASK-14.
+  arrives only at TASK-15.
 - No neural network, no PyTorch import, and no Python-level allocation in the engine's
   hot path. The engine must be importable and runnable with numpy alone.
 - The naive engine (`naive.py`) is **never deleted**. It is the oracle that the fast
@@ -112,6 +112,10 @@ Full conventions in `GIT_WORKFLOW.md`. The non-negotiable subset:
    messages contain the measured numbers that justify the tag.
 8. If the human has not authenticated `gh`, say so and stop — do not invent a
    workaround or push over HTTPS with a pasted token.
+9. **Each task adds its own CI gate in its own PR. Never add a conditional that lets a
+   gate skip silently.** `ci.yml` grows with the repo: it may only invoke commands that
+   already exist on `main`. A step guarded by `if: hashFiles(...)` reports green while
+   testing nothing, which is worse than no step at all.
 
 ---
 
@@ -155,21 +159,46 @@ leave two contradictory facts on file.
 
 ## Commands
 
-```bash
-make setup      # venv + editable install
-make test       # pytest -q          <- the gate for every engine task
-make lint       # ruff check . && ruff format --check .
-make bench      # engine throughput, prints moves/sec
-make diff-test  # 100k random games: naive engine vs bitboard engine, must be identical
-make play       # human plays in the terminal
-make eval AGENT=ntuple N=1000   # 1000-game eval, prints score dist + tile rates
-make train-td RUN=td-01         # Track A training
-make train-dqn RUN=dqn-01       # Track B training
+There is no Makefile. `make` is not installed on the development machine and the
+shell is PowerShell 5.1, where `&&` is a parse error — so every command below is
+written as its own line, to be run one at a time.
 
-make watch AGENT=ntuple         # replay a trained agent's game in the terminal
-make build                      # build the wheel/sdist
-make ci                         # everything CI runs, locally, before you push
+Setup (once):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
 ```
+
+The gates — run these before any commit:
+
+```powershell
+pytest -q                        # the gate for every engine task
+ruff check .
+ruff format --check .
+```
+
+Engine verification:
+
+```powershell
+python -m game2048.bench.differential --games 100000 --seed 7
+python -m game2048.bench.engine_bench --seconds 30 --gate 200000
+```
+
+The app itself:
+
+```powershell
+2048rl play                              # human plays in the terminal
+2048rl watch --agent ntuple              # replay a trained agent's game
+2048rl eval --agent ntuple --games 1000  # score dist + tile rates
+2048rl train --track td --run td-01      # Track A training
+2048rl train --track dqn --run dqn-01    # Track B training
+python -m build                          # build the wheel/sdist
+```
+
+"Everything CI runs, locally, before you push" is the four lines under *the gates*
+plus the differential test, in that order.
 
 If a command in this list does not exist yet, creating it is part of the task that
 needs it — not a separate task, and not something to skip.
@@ -179,31 +208,32 @@ needs it — not a separate task, and not something to skip.
 ## Repo layout
 
 ```
-src/game2048/
+src/game2048/          # the ONE distribution package. Nothing importable lives outside it.
+  __init__.py
   naive.py      # readable reference implementation. The oracle. Never deleted.
   tables.py     # precomputed 65536-entry row-move tables
   bitboard.py   # fast engine: 64-bit board, 16 nibbles of log2(tile)
   env.py        # the API agents see: reset/step/afterstate/legal_moves
   render.py     # terminal rendering
-src/agents/
-  base.py       # Agent protocol: act(state) -> Move
-  random_agent.py
-  heuristic.py  # greedy 1-ply, handcrafted features
-  expectimax.py # reference ceiling, not "the AI"
-  ntuple.py     # Track A: value network + TD(0) afterstate learning
-  dqn.py        # Track B: Double DQN convnet
-src/train/
-  td_train.py
-  dqn_train.py
-  evaluate.py   # shared eval harness for every agent
-  app.py        # Typer/argparse CLI: the `2048rl` entry point
-tests/
-bench/
-  differential.py
-  engine_bench.py
+  app.py        # Typer/argparse CLI. The `2048rl` entry point: game2048.app:main
+  agents/
+    base.py       # Agent protocol: act(env) -> Move   (env, not state — see SPECS 4)
+    random_agent.py
+    heuristic.py  # greedy 1-ply, handcrafted features
+    expectimax.py # reference ceiling, not "the AI"
+    ntuple.py     # Track A: value network + TD(0) afterstate learning
+    dqn.py        # Track B: Double DQN convnet
+  train/
+    td_train.py
+    dqn_train.py
+    evaluate.py   # shared eval harness for every agent
+  bench/
+    differential.py
+    engine_bench.py
+tests/          # not packaged; runs from the checkout
 runs/           # per-run artifacts; weights gitignored, manifests committed
 .github/
-  workflows/ci.yml       # lint + tests + 5k differential, every push
+  workflows/ci.yml       # lint + secret scan today; each task adds its own gate
   workflows/nightly.yml  # 100k differential + throughput gate + baseline eval
   pull_request_template.md
 ```

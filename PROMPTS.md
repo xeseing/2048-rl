@@ -40,10 +40,13 @@ convnet, built for honest comparison. Full contract is in SPECS.md — read it, 
 re-invent it.
 
 ### CONSTRAINTS & ACCEPTANCE CRITERIA
-1. `make test` and `make lint` pass. Every task is gated by a command that actually runs.
-2. `make diff-test` reports zero divergences between the naive oracle engine and the
+1. `pytest -q` passes and `ruff check .` / `ruff format --check .` are clean. Every
+   task is gated by a command that actually runs.
+2. `python -m game2048.bench.differential --games 100000 --seed 7` reports zero
+   divergences between the naive oracle engine and the
    bitboard engine across 100,000 random games.
-3. `make bench` reports at least 200,000 moves/sec.
+3. `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` reports at least
+   200,000 moves/sec.
 4. The learner receives only the environment's merge score as reward. No reward
    shaping, no heuristic features, no strategy hints. Violating this invalidates the
    project.
@@ -156,7 +159,7 @@ Then append the entry to memory/FAILURES.md and wait for me.
 
 ```
 Before starting the full run:
-1. Confirm `make diff-test` and `make bench` are green — paste the output.
+1. Confirm the differential test and the throughput bench are green — paste the output.
 2. Run the identical pipeline for 1,000 games. Show me: mean score, max tile, wall
    time, RAM used, and a checkpoint written and reloaded successfully.
 3. Extrapolate the full run's wall time and RAM from that smoke run.

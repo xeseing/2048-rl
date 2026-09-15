@@ -17,3 +17,10 @@ One entry per session. Cap 10 entries; roll entries 11+ into a single summary li
   Python blocks inside Markdown and objected to `SPECS.md:86`. Fixed via `.ruff.toml`
   + pinned ruff (ADR-002). `lint` and `secret-scan` now pass; `test` stays red on
   `setup-python` finding no `pyproject.toml`, which is TASK-01's deliverable.
+- Audit A-1..A-7 applied on the same branch, as directed: `test` job deleted from
+  `ci.yml` (no `hashFiles` guards — each task adds its own gate, new CLAUDE.md rule 9);
+  Makefile dropped entirely, all gates respelled as raw commands, one per line for
+  PowerShell 5.1; package root settled as `game2048` with `agents`/`train`/`bench` as
+  subpackages (ADR-006); my duplicate ADR-002 renumbered to ADR-007.
+- TASK-10/TASK-11 contents exchanged: agents first, `evaluate.py` second. The old order
+  had TASK-10 gated on a random agent that TASK-11 built.
