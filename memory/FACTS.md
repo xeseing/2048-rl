@@ -22,3 +22,9 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 - The only importable root is `game2048`; `agents`, `train` and `bench` are subpackages
   of it. A `python -m` path starting `src.` or bare `bench.` does not work from an
   installed wheel. (ADR-006)
+- Package installs as distribution `2048rl`, import root `game2048`, built by hatchling
+  from `src/`. Version is single-sourced from `src/game2048/__init__.py` via
+  `[tool.hatch.version]`; `pyproject.toml` carries no version string. (ADR-008)
+- The `pytest` console script is NOT on PATH outside `.venv` on this machine — bare
+  `pytest` raises CommandNotFoundException in PowerShell. Activate `.venv` first, or use
+  `python -m pytest`. Same applies to `ruff`.
