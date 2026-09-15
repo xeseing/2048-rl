@@ -28,3 +28,13 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 - The `pytest` console script is NOT on PATH outside `.venv` on this machine — bare
   `pytest` raises CommandNotFoundException in PowerShell. Activate `.venv` first, or use
   `python -m pytest`. Same applies to `ruff`.
+- `naive.py` is the oracle. `move(board, direction)` returns
+  `(new_board, score_gained, changed)` and never spawns — it is the afterstate half
+  of a turn. An illegal move returns the board unchanged with score 0; raising is
+  `env.py`'s job. Boards are `list[list[int]]` of tile values, never exponents, and
+  every function returns a new board rather than mutating its argument.
+- `slide_row_left` is the only sliding code in the naive engine; the other three
+  directions go through `_to_left_frame` / `_from_left_frame`. A bug in the slide is
+  therefore visible in all four directions at once, never in just one. (ADR-009)
+- `spawn()` draws cell first, then value. That order is part of what a seed
+  reproduces — swapping it invalidates every recorded transcript.
