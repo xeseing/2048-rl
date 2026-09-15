@@ -41,3 +41,9 @@ Format:
 - **Decision:** Git holds the recipe (config, metrics, summary); GitHub Releases hold the artifact. `2048rl fetch-weights` downloads and SHA-256 verifies against the checksum recorded in `runs/<id>/config.json`.
 - **Rejected:** Git LFS — the free storage/bandwidth quota is small enough that a few Stage 2 runs would exhaust it, and a clone would then be unusable.
 - **Consequence:** `git clone` stays fast, but an offline user cannot run a trained agent without one download step. Acceptable; failing loudly on a missing checksum is mandatory so it never silently runs an untrained net.
+
+### ADR-002 — Ruff does not format Markdown; ruff is pinned in CI (2026-09-15)
+- **Context:** The first CI run on PR #1 failed `lint`, not on code (there is none yet) but on `SPECS.md:86` — ruff 0.16.7 formats Python code blocks inside Markdown, and the frozen API stub in SPECS §2.3 is not in ruff's preferred shape.
+- **Decision:** `.ruff.toml` with `extend-exclude = ["*.md"]`, and pin `ruff==0.16.7` in `ci.yml`.
+- **Rejected:** Reformatting SPECS.md to satisfy the formatter — the spec is the contract; a formatter's defaults are not a reason to edit it. Also rejected leaving ruff unpinned: a `pip install ruff` that silently changes behavior means CI can go red with no commit to blame, which is the worst kind of red.
+- **Consequence:** Ruff config lives in `.ruff.toml` for the life of the repo. `.ruff.toml` takes precedence over `[tool.ruff]` in `pyproject.toml`, so TASK-01 must NOT add a second config block there — it would be silently ignored.
