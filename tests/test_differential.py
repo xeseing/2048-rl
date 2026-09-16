@@ -16,19 +16,21 @@ from game2048 import bitboard, naive
 from game2048.bench import differential
 
 
-def rotate_rows_instead_of_reversing(board):
-    """A subtle off-by-one in the row reversal.
+def slide_right_as_if_left(board):
+    """A right-slide that quietly slides left instead.
 
-    Reversing [a b c d] gives [d c b a]; this gives [d a b c]. Boards stay
-    well-formed and `left` and `up` are untouched, so only `right` and `down`
-    quietly disagree — exactly the kind of bug the differential test exists for.
+    Boards stay well-formed and `left` and `up` are untouched, so only `right`
+    and `down` disagree — the kind of bug the differential test exists for.
+
+    The injection point matters as much as the bug. This used to patch
+    `_reverse_rows`, which was on the right/down path until TASK-09 gave those
+    directions their own mirrored table. After that change the old mutant still
+    "worked" in the sense that the tests ran, but it no longer reached anything
+    `move()` calls, so the harness correctly found no divergence and six tests
+    here failed. A mutation that misses the code under test proves nothing; it
+    has to be injected where the engine actually reads.
     """
-    result = 0
-    for shift in bitboard.ROW_SHIFTS:
-        row = (board >> shift) & bitboard.ROW_MASK
-        rotated = ((row & 0xF) << 12) | (row >> 4)
-        result |= rotated << shift
-    return result
+    return bitboard._slide_left(board)
 
 
 # ---------------------------------------------------------------------------
@@ -62,13 +64,13 @@ def test_the_same_seed_gives_the_same_game_twice():
 
 
 def test_a_subtly_broken_reverse_is_caught(monkeypatch):
-    monkeypatch.setattr(bitboard, "_reverse_rows", rotate_rows_instead_of_reversing)
+    monkeypatch.setattr(bitboard, "_slide_right", slide_right_as_if_left)
     divergence = differential.run(games=20, seed=1234)
     assert divergence is not None
 
 
 def test_main_returns_one_when_the_engines_disagree(monkeypatch, capsys):
-    monkeypatch.setattr(bitboard, "_reverse_rows", rotate_rows_instead_of_reversing)
+    monkeypatch.setattr(bitboard, "_slide_right", slide_right_as_if_left)
     assert differential.main(["--games", "20", "--seed", "1234"]) == 1
     assert "DIVERGENCE" in capsys.readouterr().err
 
@@ -99,7 +101,7 @@ def test_a_wrong_spawn_is_caught(monkeypatch):
 
 def test_a_swallowed_divergence_would_be_visible_as_exit_zero(monkeypatch):
     """The always-green failure mode, stated as a test so it cannot creep back."""
-    monkeypatch.setattr(bitboard, "_reverse_rows", rotate_rows_instead_of_reversing)
+    monkeypatch.setattr(bitboard, "_slide_right", slide_right_as_if_left)
     assert differential.main(["--games", "20", "--seed", "1234"]) != 0
 
 
@@ -109,7 +111,7 @@ def test_a_swallowed_divergence_would_be_visible_as_exit_zero(monkeypatch):
 
 
 def test_the_report_carries_everything_needed_to_reproduce(monkeypatch):
-    monkeypatch.setattr(bitboard, "_reverse_rows", rotate_rows_instead_of_reversing)
+    monkeypatch.setattr(bitboard, "_slide_right", slide_right_as_if_left)
     divergence = differential.run(games=20, seed=1234)
     assert divergence is not None
 
@@ -128,7 +130,7 @@ def test_the_report_carries_everything_needed_to_reproduce(monkeypatch):
 
 
 def test_the_repro_command_in_the_report_actually_reproduces(monkeypatch):
-    monkeypatch.setattr(bitboard, "_reverse_rows", rotate_rows_instead_of_reversing)
+    monkeypatch.setattr(bitboard, "_slide_right", slide_right_as_if_left)
     divergence = differential.run(games=20, seed=1234)
     assert divergence is not None
     again = differential.compare_game(divergence.seed)
@@ -139,7 +141,7 @@ def test_the_repro_command_in_the_report_actually_reproduces(monkeypatch):
 
 
 def test_both_boards_appear_in_the_report(monkeypatch):
-    monkeypatch.setattr(bitboard, "_reverse_rows", rotate_rows_instead_of_reversing)
+    monkeypatch.setattr(bitboard, "_slide_right", slide_right_as_if_left)
     divergence = differential.run(games=20, seed=1234)
     report = divergence.report()
     assert "disagreement, naive:" in report

@@ -219,3 +219,46 @@ def test_known_rows(row, expected, score):
     packed = tables.encode_row(row)
     assert tables.row_left(packed) == tables.encode_row(expected)
     assert tables.row_score(packed) == score
+
+
+# ---------------------------------------------------------------------------
+# The mirrored right-slide tables (TASK-09). Same exhaustive standard as the
+# left ones: every row, checked against the oracle, not a sample.
+# ---------------------------------------------------------------------------
+
+
+def test_every_row_right_entry_matches_the_naive_engine():
+    for packed in ALL_ROWS:
+        tiles = tables.decode_row(packed)
+        moved, score = naive.slide_row_left(tiles[::-1])
+        moved = moved[::-1]
+        if max(moved) > 32768:
+            continue
+        assert tables.ROW_RIGHT[packed] == tables.encode_row(moved), (
+            f"row {packed:#06x} -> {tiles}"
+        )
+        assert tables.ROW_SCORE_RIGHT[packed] == score, f"row {packed:#06x} -> {tiles}"
+
+
+def test_right_tables_cover_every_row():
+    assert len(tables.ROW_RIGHT) == 1 << 16
+    assert len(tables.ROW_SCORE_RIGHT) == 1 << 16
+
+
+def test_right_overflow_rows_are_the_mirror_of_the_left_ones():
+    left_overflow = {p for p in ALL_ROWS if tables.ROW_LEFT[p] == tables.OVERFLOW_ROW}
+    right_overflow = {p for p in ALL_ROWS if tables.ROW_RIGHT[p] == tables.OVERFLOW_ROW}
+    assert right_overflow == {tables._mirror_row(p) for p in left_overflow}
+    assert right_overflow
+
+
+def test_no_legitimate_right_entry_collides_with_either_sentinel():
+    for packed in ALL_ROWS:
+        if tables.ROW_RIGHT[packed] == tables.OVERFLOW_ROW:
+            continue
+        assert tables.ROW_SCORE_RIGHT[packed] >= 0
+
+
+def test_mirroring_a_row_twice_is_the_identity():
+    for packed in ALL_ROWS:
+        assert tables._mirror_row(tables._mirror_row(packed)) == packed
