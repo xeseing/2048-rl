@@ -207,7 +207,9 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   133,928, 2048 rate 96.4%, 4096 rate 77.2%, 0.110 ms/move (327s). Training-window
   mean passed 12,900 by game 1,000 and 47,000 by game 29,000.
 - Batched TD trainer throughput falls as play improves: ~35s per 1,000 games at a
-  47k mean. `weights.npz` for Stage 1 is 5.4 MB compressed (16.8 MB float32 in RAM).
+  47k mean. Stage 1 is 4,194,304 float32 weights: 16.8 MB in RAM, `weights.npz` 5.4 MB
+  compressed. Release asset `td-01-weights.npz` on v0.3.0, SHA-256 in
+  `runs/td-01/config.json` (`473a8924…b572`, re-downloaded and matched).
 - `np.add.at` is required in `NTupleNetwork.update`: fancy-index `+=` drops repeated
   indices, and a batch repeats them. Only `test_repeated_boards_in_one_batch_accumulate`
   catches the swap.
