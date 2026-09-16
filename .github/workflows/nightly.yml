@@ -25,10 +25,11 @@ jobs:
         run: python -m game2048.bench.engine_bench --seconds 30 --gate 200000
 
       # Seeds 900000+ are the held-out eval range. Reports are tee'd into the
-      # artifact; the default Actions shell runs with pipefail, so a failed
-      # gate still fails the step.
+      # artifact. The default run shell is `bash -e` WITHOUT pipefail, so
+      # without the `set` line a failed gate exits 1 and tee turns it into 0.
       - name: Baseline eval (1000 held-out seeds)
         run: |
+          set -o pipefail
           mkdir -p runs/_nightly
           python -m game2048.train.evaluate --agent random    --games 1000 --seed-base 900000 | tee runs/_nightly/random.txt
           python -m game2048.train.evaluate --agent heuristic --games 1000 --seed-base 900000 | tee runs/_nightly/heuristic.txt

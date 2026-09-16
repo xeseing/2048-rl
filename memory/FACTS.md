@@ -198,5 +198,7 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   1,070, max 3,284, 0.141 ms/move; heuristic mean 11,548, median 10,644, max 36,828,
   2048 rate 7.0%, 4096 rate 0%, 0.339 ms/move, 239s on the dev machine. Both gates
   pass. Heuristic/random = 10.4x.
-- The GitHub Actions default `run:` shell on Linux is `bash -eo pipefail`, which is what
-  lets nightly `| tee` an eval table without swallowing the gate's exit code.
+- The GitHub Actions default `run:` shell on Linux is `bash -e {0}` — **no pipefail**
+  (only an explicit `shell: bash` adds it). `cmd | tee` there exits with tee's 0 even
+  when `cmd` fails. Seen in nightly run 35103176690's log; nightly's eval step now opens
+  with `set -o pipefail`. (ADR-021)
