@@ -82,3 +82,22 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   `.py`, not the loaded bytecode, so it cannot detect this. Any mutation harness must
   run its subprocess with `PYTHONDONTWRITEBYTECODE=1` and delete `src/**/__pycache__`
   around each mutant. Running the full suite after a mutation run catches it too.
+- Row encoding: 4 nibbles of log2(tile), 16 bits, **cell 0 in the highest nibble**, so
+  a row reads left-to-right in hex — `[2, 4, 8, 16]` is `0x1234`. Nibble 0 is empty,
+  15 is 32768.
+- `build_tables()` looks the oracle up as `naive.slide_row_left` at call time, not by
+  importing the name, so a test can swap the oracle and prove the build delegates
+  rather than carrying its own merge rule. A *correct* hand-written build passes all
+  65536 exhaustive comparisons and is caught only by that test. (ADR-013)
+- 767 of the 65536 rows slide into a tile above the 32768 nibble ceiling (two adjacent
+  32768s). Those entries hold `OVERFLOW_ROW` (`0xFFFF`) and `OVERFLOW_SCORE`
+  (`-1_000_000_000`); `row_left()` / `row_score()` raise `NibbleOverflow` on them and
+  `is_overflow(row)` reports them. Verified: the sentinel set equals the set of rows
+  whose naive result exceeds 32768, and no legitimate entry equals either sentinel.
+- The sentinels are deliberately loud, because the bitboard engine indexes the tables
+  raw for speed and a forgotten check must not corrupt quietly. `0xFFFF` decodes to
+  four 32768s, which no slide can ever produce, so a board that picks it up is
+  obviously wrong; a `-1` score would instead have shifted a real total by one per
+  lookup. (ADR-013)
+- Building both tables costs 0.140s at import and ~1.0 MB resident. No on-disk cache
+  yet; `.gitignore` already anticipates `_tables_cache.npy` if that ever matters.
