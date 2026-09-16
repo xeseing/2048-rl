@@ -93,8 +93,10 @@ or slow engine is the single most expensive mistake available in this project.
 - **Command Run:** the gates above; `td_train --stage 2 --games 1000 --log-every 100
   --checkpoint-every 200`, `Stop-Process -Force`, then `td_train --run s2-crash --resume`
 - **Errors / Tracebacks:** `None`
-- **Corrective Action Plan:** full run `td-02` (`--stage 2 --games 1000000`) waits for
-  the human's go. Expect ≥ 14h (FACTS). Open question: alpha decay (ADR-022, ADR-024).
+- **Corrective Action Plan:** alpha decay added (`--alpha-schedule linear`). The 10k
+  Stage 1 decay smoke was worse than td-01 at 10k (21,624 vs 26,750 mean; 35.3% vs
+  54.5% 2048), which is the human's stop condition. td-02 is on hold, and the Stage 2
+  decay smoke has not run, until the human decides between fixed and decayed alpha.
 
 ---
 

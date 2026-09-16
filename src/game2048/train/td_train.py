@@ -1,7 +1,8 @@
 """Track A training: TD(0) on afterstates, self-play (SPECS section 4.4).
 
     python -m game2048.train.td_train --run td-01 --games 100000 --seed 1
-    python -m game2048.train.td_train --run td-02 --stage 2 --games 1000000
+    python -m game2048.train.td_train --run td-02 --stage 2 --games 1000000 \
+        --alpha-schedule linear --alpha-start 0.1 --alpha-end 0.01
     python -m game2048.train.td_train --run td-02 --resume
 
 `batch` games are played side by side on the bitboard engine, so the network's
@@ -51,6 +52,17 @@ def max_tile(board: int) -> int:
     return 1 << max((board >> s) & 15 for s in range(0, 64, 4))
 
 
+def alpha_at(done, games, alpha, alpha_end=None):
+    """The step size after `done` of `games` finished games.
+
+    `alpha_end=None` is constant alpha. Otherwise alpha falls linearly from
+    `alpha` at game 0 to `alpha_end` at game `games`.
+    """
+    if alpha_end is None:
+        return alpha
+    return alpha + (alpha_end - alpha) * done / games
+
+
 def train(
     network,
     games,
@@ -61,11 +73,16 @@ def train(
     state=None,
     checkpoint_every=0,
     on_checkpoint=None,
+    alpha_end=None,
 ):
     """Play `games` self-play games, learning as it goes.
 
     `on_game(score, max_tile)` is called as each game ends. Returns the list of
     (score, max_tile) finished in this call, in finishing order.
+
+    The step size is recomputed before every batched update from the games
+    finished so far, run-wide (see `alpha_at`), so a resumed run decays on
+    the same schedule.
 
     `on_checkpoint(state)` is called at the end of the step in which the
     finished-game count crosses a multiple of `checkpoint_every`. Passing that
@@ -109,7 +126,8 @@ def train(
         if learners:
             prevs = exponents([slots[i][1] for i in learners])
             targets = np.array([best[i][0] if best[i] else 0.0 for i in learners])
-            network.update(prevs, targets - network.values(prevs), alpha)
+            step = alpha_at(done, games, alpha, alpha_end)
+            network.update(prevs, targets - network.values(prevs), step)
 
         survivors = []
         for slot, choice in zip(slots, best, strict=True):
@@ -158,7 +176,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run", required=True, help="run id, writes runs/<run>/")
     parser.add_argument("--games", type=int, default=100_000)
     parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--alpha", type=float, default=0.1)
+    parser.add_argument(
+        "--alpha-schedule", choices=("constant", "linear"), default="constant"
+    )
+    parser.add_argument("--alpha-start", "--alpha", type=float, default=0.1)
+    parser.add_argument("--alpha-end", type=float, help="linear schedule only")
     parser.add_argument("--batch", type=int, default=64)
     parser.add_argument("--log-every", type=int, default=1000)
     parser.add_argument("--runs-dir", default="runs")
@@ -177,7 +199,9 @@ def main(argv: list[str] | None = None) -> int:
         for key in (
             "games",
             "seed",
-            "alpha",
+            "alpha_schedule",
+            "alpha_start",
+            "alpha_end",
             "batch",
             "log_every",
             "stage",
@@ -186,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
             setattr(args, key, config[key])
     if args.seed >= EVAL_SEED_FLOOR:
         parser.error(f"seeds >= {EVAL_SEED_FLOOR} are the held-out eval range")
+    if (args.alpha_schedule == "linear") != (args.alpha_end is not None):
+        parser.error("--alpha-end goes with --alpha-schedule linear, and only there")
     tuples = STAGES[args.stage]
 
     if args.resume:
@@ -201,7 +227,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"resuming {args.run} at game {state['done']:,}", flush=True)
     else:
         out.mkdir(parents=True, exist_ok=False)
-        config = vars(args) | {"tuples": tuples}
+        cadence = "every batched update, from games finished run-wide"
+        config = vars(args) | {"alpha_cadence": cadence, "tuples": tuples}
         del config["resume"]
         (out / "config.json").write_text(json.dumps(config, indent=2) + "\n")
         network, state = NTupleNetwork(tuples), None
@@ -213,7 +240,8 @@ def main(argv: list[str] | None = None) -> int:
     metrics_file = open(out / "metrics.csv", "a", newline="")  # noqa: SIM115
     metrics = csv.writer(metrics_file)
     if not state:
-        metrics.writerow(["games", "mean_score", "rate_2048", "max_score", "seconds"])
+        header = ["games", "mean_score", "rate_2048", "max_score", "alpha", "seconds"]
+        metrics.writerow(header)
 
     def on_game(score, tile):
         nonlocal done
@@ -225,6 +253,7 @@ def main(argv: list[str] | None = None) -> int:
                 round(statistics.mean(s for s, _ in window)),
                 round(sum(t >= 2048 for _, t in window) / len(window), 4),
                 max(s for s, _ in window),
+                round(alpha_at(done, args.games, args.alpha_start, args.alpha_end), 6),
                 round(time.perf_counter() - start, 1),
             ]
             metrics.writerow(row)
@@ -243,20 +272,24 @@ def main(argv: list[str] | None = None) -> int:
             network,
             args.games,
             args.seed,
-            args.alpha,
+            args.alpha_start,
             args.batch,
             on_game,
             state,
             args.checkpoint_every,
             on_checkpoint,
+            args.alpha_end,
         )
     network.save(out / "weights.npz")
     checkpoint.unlink(missing_ok=True)
 
     last = list(csv.DictReader(open(out / "metrics.csv")))[-1]  # noqa: SIM115
+    alpha = f"alpha {args.alpha_start}"
+    if args.alpha_end is not None:
+        alpha += f" -> {args.alpha_end} ({args.alpha_schedule})"
     (out / "summary.md").write_text(
         f"# {args.run}\n\n"
-        f"- games: {args.games:,}, seed {args.seed}, alpha {args.alpha}, "
+        f"- games: {args.games:,}, seed {args.seed}, {alpha}, "
         f"batch {args.batch}, stage {args.stage}\n"
         f"- last {args.log_every:,} training games: mean {int(last['mean_score']):,}, "
         f"2048 rate {float(last['rate_2048']):.1%}\n"

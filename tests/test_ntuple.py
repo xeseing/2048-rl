@@ -10,6 +10,8 @@ What must hold:
 * The agent is greedy on `r + V`, stays legal, and leaves the env untouched.
 """
 
+import json
+
 import numpy as np
 import pytest
 from test_env import fingerprint, with_board
@@ -202,6 +204,7 @@ def test_a_crashed_run_resumes_to_the_same_weights_and_metrics(tmp_path, monkeyp
     stopped (bar the seconds column).
     """
     common = ["--games", "60", "--batch", "8", "--log-every", "15"]
+    common += ["--alpha-schedule", "linear", "--alpha-end", "0.01"]
     common += ["--checkpoint-every", "20", "--runs-dir", str(tmp_path)]
     assert td_train.main(["--run", "clean", *common]) == 0
 
@@ -237,6 +240,35 @@ def test_a_crashed_run_resumes_to_the_same_weights_and_metrics(tmp_path, monkeyp
         NTupleNetwork.load(tmp_path / "clean" / "weights.npz").weights,
     )
     assert not (out / "checkpoint_latest.npz").exists()
+
+
+def test_linear_decay_reaches_the_update_and_the_metrics(tmp_path, monkeypatch):
+    steps = []
+    update = NTupleNetwork.update
+
+    def spy(self, exponents, deltas, alpha):
+        steps.append(alpha)
+        update(self, exponents, deltas, alpha)
+
+    monkeypatch.setattr(NTupleNetwork, "update", spy)
+    argv = ["--run", "t", "--games", "40", "--batch", "8", "--log-every", "20"]
+    argv += ["--alpha-schedule", "linear", "--alpha-start", "0.1"]
+    argv += ["--alpha-end", "0.01", "--runs-dir", str(tmp_path)]
+    assert td_train.main(argv) == 0
+    assert steps[0] == 0.1 and steps == sorted(steps, reverse=True)
+    assert 0.01 < steps[-1] < 0.02  # the last update happens before game 40 ends
+    rows = (tmp_path / "t" / "metrics.csv").read_text().splitlines()
+    assert rows[0] == "games,mean_score,rate_2048,max_score,alpha,seconds"
+    assert [r.split(",")[4] for r in rows[1:]] == ["0.055", "0.01"]
+    config = json.loads((tmp_path / "t" / "config.json").read_text())
+    assert (config["alpha_schedule"], config["alpha_start"]) == ("linear", 0.1)
+    assert config["alpha_end"] == 0.01 and "alpha_cadence" in config
+
+
+def test_alpha_end_needs_the_linear_schedule(tmp_path):
+    for extra in (["--alpha-end", "0.01"], ["--alpha-schedule", "linear"]):
+        with pytest.raises(SystemExit):
+            td_train.main(["--run", "t", "--runs-dir", str(tmp_path), *extra])
 
 
 def test_resume_without_a_checkpoint_is_an_error(tmp_path):
