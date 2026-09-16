@@ -119,3 +119,22 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   on this.
 - Golden test values live once, in `tests/golden_cases.py`, and are read by both
   engines' test modules. Neither file re-types an expected board.
+- **First differential proof point:** `python -m game2048.bench.differential
+  --games 100000 --seed 7` → 0 divergences, 1449.8s, 14.5ms per game. Games use seeds
+  `7..100006`; each game seeds the naive RNG, the bitboard RNG and the move policy
+  independently and deterministically, so any single game replays from its own seed.
+  The CI fast lane is the same command with `--games 5000 --seed 1234`: 40.2s on an
+  otherwise idle dev machine, so it adds well under a minute to each `test` job.
+- The differential harness compares **all four directions every step**, not just the
+  move taken: board, score and `changed` for each, then `legal_moves`, then the board
+  after the spawn, then the running score. That is 8 move computations per step;
+  calling `legal_moves` and `is_game_over` on both engines instead would be 20 for the
+  same answer.
+- Each engine gets its **own** RNG seeded identically, rather than sharing one. An
+  engine that consumed a different number of draws per spawn would then diverge
+  visibly instead of being hidden by a shared stream. (ADR-015)
+- The differential test cannot catch a bug both engines share, and `tables.py` is
+  built by calling `naive.slide_row_left`, so a wrong merge rule is wrong identically
+  on both sides and passes in silence. The golden tests in `tests/golden_cases.py`,
+  hand-computed from SPECS and never captured from an implementation, are what cover
+  that. `test_a_bug_shared_by_both_engines_is_invisible_here` pins the limitation.
