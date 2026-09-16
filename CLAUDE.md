@@ -93,12 +93,23 @@ Full conventions in `GIT_WORKFLOW.md`. The non-negotiable subset:
    `git push --force` to `main` under any circumstance.
 3. **Every commit message carries a `Verified:` footer** with the command that was run
    and its result. A commit with no `Verified:` line is a commit that skipped the gate.
-   Format:
+   What sits above it depends on the branch: **task branches carry `Task:` + `Verified:`;
+   `fix/` and `chore/` branches carry `Chore:` + `Verified:`.** Same shape, different
+   key, so `git log --grep="Task:"` stays a list of tasks and nothing else, and
+   `git log --grep="Chore:"` is everything that changed the scaffolding around them.
+   Never give a non-task commit a `Task:` line to look uniform — that is precisely the
+   thing that makes the audit trail stop being one.
    ```
    feat(bitboard): add uint64 board with precomputed row tables
 
    Task: TASK-07
    Verified: pytest tests/test_engine.py -q -> 47 passed
+   ```
+   ```
+   docs(process): one task per PR, and a pointer to the stale-.pyc trap
+
+   Chore: atomic-task-PR rule and harness-hygiene note
+   Verified: ruff check . -> All checks passed!
    ```
 4. **PR per task.** `gh pr create --fill`, wait for CI with `gh pr checks --watch`, then
    `gh pr merge --squash --delete-branch`. Do not merge with CI red. Do not merge
@@ -123,6 +134,11 @@ Full conventions in `GIT_WORKFLOW.md`. The non-negotiable subset:
     goalpost. Structural edits — wording, formatting, a clarifying sentence that changes
     no criterion — do not need the heading. Editing SPECS itself needs no advance
     sign-off: correct the contract first, log the ADR, and flag it in the PR.
+11. **One task per PR.** If a process rule, doc fix, or infrastructure improvement
+    is born from a discovery mid-task, land the current task's PR as it stands
+    and open a follow-up `fix/` branch for the new rule. The atomic-commit
+    convention is what makes `git log --grep="Task:"` and
+    `git log --grep="Verified:"` searchable audit trails.
 
 ---
 
@@ -157,6 +173,10 @@ Five files, five different jobs. Keeping them separate is what stops them rottin
 - Your plans, TODOs, or "next steps" — those live in `LOOP_STATE.md` and expire.
 - Code snippets. Memory points at code (`src/agents/ntuple.py:88`), it does not copy it.
 - Anything you have not verified. Memory is a record of evidence, not of guesses.
+
+**Harness hygiene:** before writing a red-first mutation harness, read the stale
+`.pyc` entry in `memory/FACTS.md` — a source file restored byte-for-byte can keep
+executing its mutant, and `inspect.getsource` cannot see it.
 
 **Contradiction rule:** if a new observation contradicts a line in `FACTS.md`, fix that
 line in place and append a `DECISIONS.md` entry saying what changed and why. Never

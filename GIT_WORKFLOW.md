@@ -127,8 +127,14 @@ gh api -X PUT repos/xeseing/2048-rl/branches/main/protection \
 
 ## Part 3 — Commit convention
 
-Conventional Commits, with the task ID, and — this is the part that matters here — the
-**verification command in the footer**.
+Conventional Commits, with an identity line, and — this is the part that matters here
+— the **verification command in the footer**.
+
+The identity line depends on the branch. Task branches carry `Task:`; `fix/` and
+`chore/` branches carry `Chore:`. Same shape, different key, so
+`git log --grep="Task:"` stays a list of tasks and nothing else. Never give a non-task
+commit a `Task:` line to look uniform — that is precisely what stops the audit trail
+being one.
 
 ```
 <type>(<scope>): <summary in imperative mood>
@@ -137,6 +143,15 @@ Conventional Commits, with the task ID, and — this is the part that matters he
 
 Task: TASK-08
 Verified: python -m game2048.bench.differential --games 100000 --seed 7 -> 0 divergences
+```
+
+```
+<type>(<scope>): <summary in imperative mood>
+
+<why, if not obvious from the summary>
+
+Chore: <what scaffolding this changed>
+Verified: ruff check . -> All checks passed!
 ```
 
 Types: `feat` `fix` `test` `perf` `refactor` `docs` `chore` `exp`
@@ -168,11 +183,26 @@ Verified: 2048rl eval --agent ntuple --games 1000 -> mean 43,118, 2048 rate 94.2
 Run: runs/td-04/
 ```
 
+```
+docs(process): one task per PR, and a pointer to the stale-.pyc trap
+
+Rule 11 plus a PR-template checklist line. No code, no tests, no LOOP_STATE
+task changes.
+
+Chore: atomic-task-PR rule and harness-hygiene note
+Verified: ruff check . -> All checks passed!
+Verified: pytest -q -> 129 passed in 1.14s (unchanged; docs-only)
+```
+
 **Why the footer:** in six months, `git log` becomes a searchable record of what was
 actually proven, not what was claimed. `git log --grep="Verified:"` is your audit
-trail. A commit without a `Verified:` line is a commit that skipped the gate.
+trail; `git log --grep="Task:"` is the task history and `git log --grep="Chore:"` is
+everything that changed the scaffolding around it. A commit without a `Verified:` line
+is a commit that skipped the gate.
 
-One task, one commit (or one squashed PR). No mixed diffs.
+One task, one commit (or one squashed PR). No mixed diffs. A process rule or doc fix
+discovered mid-task goes on its own `fix/` branch rather than riding along — see
+CLAUDE.md version-control rule 11.
 
 ---
 
