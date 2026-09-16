@@ -144,3 +144,10 @@ Format:
 - **Decision:** Widen to 750–1250. The gate asks "is this still random-ish play", not "is this exactly today's random implementation". The two out-of-range cases ADR-018 cites (12,034 and 818) remain far outside or near the edge respectively; 818 now passes, and that is accepted — a first-legal-move policy is not what this gate is for, and `test_random_is_uniform_over_legal_moves` covers uniformity directly.
 - **Rejected:** Keeping 850–1150. A legitimate change to the agent's draw pattern could cross 1150 and fail nightly for no real fault.
 - **Consequence:** Supersedes the random-gate numbers in ADR-018.
+
+### ADR-021 — Nightly eval step sets pipefail explicitly (2026-09-16)
+- **Context:** TASK-11 (ADR-018) piped each eval into `tee` on the belief that the default Actions shell runs with pipefail. Nightly run 35103176690's log shows `shell: /usr/bin/bash -e {0}`: no pipefail. A failed eval gate would have exited 1 and the step would still have passed — a silently skipping gate, which CLAUDE.md rule 9 forbids. The FACTS line asserting pipefail was wrong and is corrected in place.
+- **Decision:** First line of the step's `run:` block is `set -o pipefail`. Proved by running the extracted block under `bash -e` with `python` stubbed to exit 1: step exit 0 before, 1 after.
+- **Rejected:** `shell: bash` on the step. It also adds pipefail, but only by a documented side effect that is exactly the kind of thing that was misremembered here; the `set` line says what it does.
+- **Rejected:** Dropping `tee` and redirecting to a file. The table would vanish from the job log, which is where a failure is read first.
+- **Consequence:** Any future `run:` step that pipes a gated command needs the same line.
