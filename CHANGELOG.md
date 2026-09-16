@@ -7,6 +7,31 @@ Every entry must contain a **measured number**, not an adjective.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-16
+
+Baselines built and measured by the shared eval harness. Scores are deterministic from
+the seeds; ms/move is from the dev machine.
+
+### Added
+- `agents/`: the `Agent` protocol, a seeded random agent, and a greedy 1-ply heuristic
+  (empty cells, monotonicity, smoothness, max tile in a corner). The heuristic reads the
+  env only through `legal_moves()` and `afterstate()`; a test proves the env is
+  byte-identical after `act`.
+- `python -m game2048.train.evaluate --agent {random|heuristic} --games N --seed-base S
+  [--json]`: mean/median/max score, 2048/4096 rate, max-tile histogram, ms/move, and a
+  per-agent gate (exit 1 on fail).
+- Seeds 900000+ reserved as the held-out eval range.
+- Nightly: baseline eval on both agents, tables uploaded as the `nightly-eval` artifact.
+
+### Verified
+- Random, 1000 games, seed-base 900000: mean 1,108, median 1,070, max 3,284, 2048 rate
+  0.0%, 0.131 ms/move. Gate `750 <= mean <= 1250`: PASS.
+- Heuristic, 1000 games, seed-base 900000: mean 11,548, median 10,644, max 36,828,
+  2048 rate 7.0%, 4096 rate 0.0%, 0.339 ms/move. Gate `mean >= 3000 and 2048 rate >= 5%`:
+  PASS. 10.4x random.
+- Mutation runs: agents 21/21 mutants killed, eval harness 24/24.
+- 281 tests across 10 modules.
+
 ## [0.1.0] - 2026-09-16
 
 Engine verified. Tagged at `888a6cf`. Every number below comes from CI or nightly on

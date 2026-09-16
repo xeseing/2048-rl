@@ -4,4 +4,4 @@ The only importable root in this project: `agents`, `train` and `bench` are
 subpackages of this one. See ADR-006.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
