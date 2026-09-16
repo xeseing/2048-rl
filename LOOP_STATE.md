@@ -16,8 +16,8 @@
 | `TASK-00` | Git init, GitHub repo created, `.gitignore`, CI + nightly workflows, PR template, branch protection on `main` | P0 | `gh repo view` succeeds; CI green on first PR | [x] DONE | #1 (29993a6) |
 | `TASK-01` | Repo skeleton, `pyproject.toml` (`game2048` package + `[dev]` extra), ruff, pytest, one trivial passing test; adds the `test` job to `ci.yml` | P0 | `pytest -q` exits 0; `ruff check .` + `ruff format --check .` clean | [x] DONE | #2 (1b1402e) |
 | `TASK-02` | Naive engine: `move_left` + rotations, spawn, score, game-over | P0 | Golden move tests, merge-once, edge-order | [x] DONE | #3 (6d4a9b2) |
-| `TASK-03` | Spawn + determinism tests (0.9/0.1, uniform empties, seeded replay) | P0 | chi-square p > 0.01; identical transcripts; score invariant | [x] DONE | #4 |
-| `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises | [ ] PENDING | — |
+| `TASK-03` | Spawn + determinism tests (0.9/0.1, uniform empties, seeded replay) | P0 | chi-square p > 0.01; identical transcripts; score invariant | [x] DONE | #4 (b06a7c0) |
+| `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises, env byte-identical | [x] DONE | #5 |
 | `TASK-05` | Terminal render + `2048rl play` (human playable) | P2 | Manual: play one game to game-over | [ ] PENDING | — |
 | `TASK-06` | `tables.py`: 65536-row tables built from the naive oracle | P0 | Table entries == naive row moves, all 65536 | [ ] PENDING | — |
 | `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [ ] PENDING | — |
@@ -58,12 +58,12 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-03`
-- **Branch:** `task/03-spawn-determinism` (#4)
+### Current Active Task: `TASK-04`
+- **Branch:** `task/04-env` (#5)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 49 passed; `ruff check .` → All checks
-  passed; `ruff format --check .` → 5 files already formatted. Four mutants of
-  `naive.py` were each caught by the intended test (see PR body).
+- **Last Verification Result:** `pytest -q` → 88 passed in 1.19s; `ruff check .` → All
+  checks passed; `ruff format --check .` → 7 files already formatted. Six mutants of
+  `env.py` were each caught by the intended test (see PR body).
 - **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
 - **Corrective Action Plan:** `None` — awaiting merge approval.
@@ -73,7 +73,7 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 49 / 49
+- **Passing Tests:** 88 / 88
 - **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** — moves/sec (gate: 200,000)
 - **Differential Test:** NOT RUN

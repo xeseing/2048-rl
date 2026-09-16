@@ -47,3 +47,17 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   alpha=0.01 critical values (df 15 -> 30.578, df 4 -> 13.277) rather than computing a
   p-value; scipy is not a dependency and an incomplete gamma in a test file is not
   worth owning.
+- `Env.step()` checks legality and raises `IllegalMove` before assigning anything, so
+  a rejected move cannot have spawned or scored. Proved by a mutant that spawns first
+  and raises second: it passes a naive "board unchanged" check and is caught only by
+  comparing a fingerprint that includes the RNG state. (`tests/test_env.py`)
+- `Env.afterstate()` is pure because `naive.move` builds a fresh board and touches no
+  RNG — purity is structural, not a promise the method keeps by being careful. The
+  test that guards it compares `env._rng.getstate()`, which is what makes "did not
+  spawn" provable rather than plausible.
+- `Env.reset(seed=None)` continues the existing RNG stream rather than reseeding, so a
+  run of many games stays reproducible from the one seed the env was built with.
+  `reset(seed=k)` replaces the RNG.
+- `Env`'s spawn stream is identical to driving `naive` directly from the same seed —
+  the env adds no hidden draws. Pinned by
+  `test_the_env_spawns_exactly_what_the_naive_engine_would_from_the_same_seed`.
