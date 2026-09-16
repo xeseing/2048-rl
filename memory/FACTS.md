@@ -153,10 +153,24 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   `transpose` mask-and-shift 44,704 → 68,273; `_reverse_rows` mask-and-shift
   68,273 → 111,596; `ROW_RIGHT` table 111,596 → 273,918. Component costs after:
   `transpose` 0.38us, `_reverse_rows` 0.28us, `_slide_left` 0.63us, `move` 0.86–1.86us
-  by direction, `spawn` 1.89us of which `empty_cells` is 1.58us.
-- After those three, `spawn`/`empty_cells` is the largest single cost per applied move
-  and is **not** one of the logged candidates. Untouched because the gate was already
-  cleared; first place to look if throughput must go further.
+  by direction, `spawn` 1.89us of which `empty_cells` was 1.58us.
+- `empty_cells` is now one mask (OR each nibble onto its low bit, invert against
+  `0x1111...`) plus a walk over the set flags, highest first: 1.37us → 0.47us per call,
+  same row-major order and RNG stream. In-process A/B (20 × 1.5s slices alternating
+  old/new): median 172,206 → 190,780 moves/sec, ratio 1.108. (#12, ADR-019)
+- A 4 × 65536 table of empty-cell tuples was faster still (0.22us) but cost 0.61s at
+  import and 6.3 MB, so it was not taken.
+- Table storage (candidate 5) measured: tuple 15.7ns and list 15.3ns per lookup,
+  `array.array('H')` 23.1ns. No gain available; tuples stay.
+- **The dev machine does not predict the CI runner.** After TASK-09 the dev median was
+  267k, but ubuntu-latest's 5s smoke step read 194,166 / 174,191 / 192,783 / 229,129.
+  After #12: smoke 247,839 (3.11) / 289,658 (3.12); nightly 30s gate on 3.12
+  (run 35097911041) **222,045 moves/sec, PASS**. That nightly number is the tagged one
+  (v0.1.0). Check CI's own number before claiming headroom.
+- Nightly run 35097911041 (commit a58cd11, tree-identical to main 888a6cf):
+  differential 100,000 games, seed 7, 0 divergences, 667.5s on ubuntu-latest.
+- v0.1.0 is tagged at 888a6cf, but `__version__` there still reads `0.0.0`; the bump
+  landed after the tag.
 - `tables.py` now also builds `ROW_RIGHT` / `ROW_SCORE_RIGHT` by mirroring the left
   tables. Import cost is roughly double TASK-06's 0.14s and about 2 MB resident, in
   exchange for `right` being a plain lookup and `down` being transpose-lookup-transpose.
@@ -174,6 +188,10 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 - A monotonicity mutant that checked rows only survived a suite whose boards were all
   symmetric in rows and columns. Feature tests need at least one board where rows and
   columns disagree.
+- **Agent numbers from before TASK-11 used correlated seeds** (`RandomAgent(seed=s)`
+  with `Env(seed=s)`): TASK-10's random 1,084 / heuristic 11,577 on seeds 0–999 are
+  kept as measured but are not comparable to eval-harness output. (ADR-018)
+- The random gate is 750–1250 (ADR-020); held-out random mean 1,108 sits mid-range.
 - **Held-out eval seeds are 900000+** (CLAUDE.md hard constraints). Tests use 4200+,
   heuristic tuning used 5000–6299.
 - **Eval harness, 1000 games, seed-base 900000 (TASK-11):** random mean 1,108, median

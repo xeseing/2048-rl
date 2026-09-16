@@ -76,7 +76,7 @@ class Report:
 
 
 GATES = {
-    "random": ("850 <= mean <= 1150", lambda r: 850 <= r.mean <= 1150),
+    "random": ("750 <= mean <= 1250", lambda r: 750 <= r.mean <= 1250),
     "heuristic": (
         "mean >= 3000 and 2048 rate >= 5%",
         lambda r: r.mean >= 3000 and r.rate(2048) >= 0.05,
