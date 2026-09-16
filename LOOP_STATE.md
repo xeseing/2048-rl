@@ -21,10 +21,10 @@
 | `TASK-05` | Terminal render + `python -m game2048 play` (human playable; the `2048rl` script is TASK-19) | P2 | Manual: play one game to game-over | [x] DONE | #6 (e5b85c5) |
 | `TASK-06` | `tables.py`: 65536-row tables built from the naive oracle | P0 | Table entries == naive row moves, all 65536 | [x] DONE | #8 (c724377) |
 | `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [x] DONE | #9 (88aee30) |
-| `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [x] DONE | #10 |
-| `TASK-09` | Throughput benchmark; adds the throughput gate to `ci.yml` and the heavy steps to `nightly.yml`; **re-enables nightly's `schedule:` trigger**, commented out in TASK-01 because the modules it invokes did not exist; owns the optimisation candidates listed below | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [ ] PENDING | — |
+| `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [x] DONE | #10 (8b8f7a4) |
+| `TASK-09` | Throughput benchmark; informational smoke step in `ci.yml`, full gate in `nightly.yml`; **re-enabled nightly's `schedule:` trigger** | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [x] DONE | #11 |
 | `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [ ] PENDING | — |
-| `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [ ] PENDING | — |
+| `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram; **re-enables nightly's baseline-eval step**, commented out in TASK-09 because the module did not exist | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [ ] PENDING | — |
 | `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [ ] PENDING | — |
 | `TASK-13` | **N-tuple Stage 2**: 4×6-tuples, checkpointing, resume | P0 | 1M games → ≥ 40,000 mean, ≥ 90% 2048 | [ ] PENDING | — |
 | `TASK-14` | Expectimax depth-3 reference ceiling | P2 | ≥ 20,000 mean, ≥ 80% 2048 | [ ] PENDING | — |
@@ -50,25 +50,25 @@ its own gate.
 TASK-10 and first measured by the TASK-11 eval harness — same milestone as before, both
 tasks renumbered by the swap above) · v0.3.0 after TASK-12 · v0.4.0 after TASK-13 · v0.5.0 after TASK-16 · v1.0.0 after TASK-23
 
-### Optimisation candidates deferred to TASK-09
+### Optimisation candidates — TASK-09 outcome
 
-TASK-07 was written for readability and correctness only; no benchmark has been run
-and nothing here has been measured. Profile first, then take these in order of
-what the profile actually says:
+Profiled, then taken in order, measuring after each. **Stopped at candidate 3**, which
+cleared the gate with headroom; 4, 5 and 6 expired untaken.
 
-1. **`transpose` is a 16-iteration Python loop** doing two shifts and a mask per cell.
-   The standard mask-and-shift trick does it in three steps. This is on the `up` and
-   `down` path twice per move, so it is the first place to look.
-2. **`_reverse_rows` is another per-cell loop.** Either the same mask-and-shift
-   treatment, or a 65536-entry `REVERSE_ROW` table built the same way as `ROW_LEFT`.
-3. **A `ROW_RIGHT` table would delete `_reverse_rows` from the `right` and `down`
-   paths entirely** — one extra megabyte to remove two reversals per move.
-4. **`legal_moves` calls `move` four times**, and each call redoes the full
-   reorientation. A single pass that slides all four directions could share work.
-5. **Table storage**: `ROW_LEFT` / `ROW_SCORE` are tuples of Python ints. Measure
-   `list` and `array.array` before assuming; CPython tuple indexing is already fast.
-6. **`move` compares `moved == board` to set `changed`**, which is correct and cheap;
-   listed only so nobody "optimises" it into a per-cell scan.
+| # | Candidate | Outcome |
+| :-- | :-- | :-- |
+| 1 | `transpose` mask-and-shift instead of a 16-iteration loop | **taken** — 44,704 → 68,273 moves/sec; `transpose` 3.16us → 0.38us |
+| 2 | `_reverse_rows` mask-and-shift | **taken** — 68,273 → 111,596; `_reverse_rows` 2.04us → 0.28us |
+| 3 | `ROW_RIGHT` table, deleting reversals from `right`/`down` | **taken** — 111,596 → 273,918 |
+| 4 | `legal_moves` single pass | expired — gate cleared first, and the benchmark loop calls `move` directly so this was never on the measured path |
+| 5 | Table storage: tuple vs list vs `array.array` | expired — untested, unmeasured |
+| 6 | (warning only: do not "optimise" `moved == board`) | still stands |
+
+**The profile moved as the work progressed.** After 1 and 2, the largest single cost
+per applied move was no longer anything on the list: `spawn` at 1.89us, of which
+`empty_cells` is 1.58us, against ~1.34us for an average `move`. It was not touched,
+because candidate 3 cleared the gate before it became necessary. It is the first place
+to look if throughput ever needs to go further.
 
 ---
 
@@ -80,15 +80,15 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-08`
-- **Branch:** `task/08-differential` (#10)
+### Current Active Task: `TASK-09`
+- **Branch:** `task/09-throughput` (#11)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 226 passed; `ruff check .` → All checks
-  passed; `ruff format --check .` → 18 files already formatted.
-  100,000 games, seed 7, **0 divergences** (1449.8s, 14.5ms per game). 5,000 games, seed 1234, 0
-  divergences — the CI fast lane. Harness discrimination proved first: an
-  off-by-one in `bitboard._reverse_rows` is caught on game 1, move 2, exit code 1.
-  No benchmark run — throughput is still TASK-09.
+- **Last Verification Result:** `pytest -q` → 231 passed; `ruff check .` → All checks
+  passed; `ruff format --check .` → 20 files already formatted. Throughput on a
+  quiet dev machine, seven 15s runs: min 236,847, **median 267,359**, max 276,410
+  moves/sec (gate 200,000). Gate discrimination proved first: with a
+  `time.sleep(0.00001)` per move, `--gate 200000` reports FAIL and exits 1, while
+  the same slowed engine with no `--gate` exits 0.
 - **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
 - **Corrective Action Plan:** `None` — awaiting merge approval.
@@ -98,9 +98,9 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 226 / 226
+- **Passing Tests:** 231 / 231
 - **Lint Status:** clean (`ruff` 0.16.7)
-- **Engine Throughput:** — moves/sec (gate: 200,000)
+- **Engine Throughput:** 267,359 moves/sec median, 236,847 worst of 7 (gate: 200,000)
 - **Differential Test:** 100,000 games, seed 7 — 0 divergences (TASK-08)
 - **Best Agent:** — (mean score —, 2048 rate —)
 - **Milestones Completed:** None

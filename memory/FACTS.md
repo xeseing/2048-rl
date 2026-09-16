@@ -120,7 +120,9 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 - Golden test values live once, in `tests/golden_cases.py`, and are read by both
   engines' test modules. Neither file re-types an expected board.
 - **First differential proof point:** `python -m game2048.bench.differential
-  --games 100000 --seed 7` → 0 divergences, 1449.8s, 14.5ms per game. Games use seeds
+  --games 100000 --seed 7` → 0 divergences, 1449.8s, 14.5ms per game. Re-run on the
+  TASK-09 engine: same seed, same 0 divergences, 589.3s. Nightly's 60-minute timeout
+  is comfortable. Games use seeds
   `7..100006`; each game seeds the naive RNG, the bitboard RNG and the move policy
   independently and deterministically, so any single game replays from its own seed.
   The CI fast lane is the same command with `--games 5000 --seed 1234`: 40.2s on an
@@ -138,3 +140,23 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   on both sides and passes in silence. The golden tests in `tests/golden_cases.py`,
   hand-computed from SPECS and never captured from an implementation, are what cover
   that. `test_a_bug_shared_by_both_engines_is_invisible_here` pins the limitation.
+- **Engine throughput after TASK-09:** seven 15s runs on a quiet dev machine (Windows
+  AMD64, Intel Family 6 Model 183, CPython 3.11.7) gave min 236,847, median 267,359,
+  max 276,410 applied moves/sec against the 200,000 gate. A "move" here is an applied
+  board transition, not an engine call; the benchmark tries a random rotation of the
+  four directions and applies the first legal one, about 1.3 calls per counted move.
+- **That machine is too noisy to trust a single benchmark run.** Contended readings
+  during the same session ranged from 79,729 to 276,486 moves/sec — a 3.5x spread —
+  with no code change between them. Always take several runs and report the spread;
+  a single number from this box means nothing. (ADR-016)
+- Optimisation results, each measured with `--seconds 10` before and after:
+  `transpose` mask-and-shift 44,704 → 68,273; `_reverse_rows` mask-and-shift
+  68,273 → 111,596; `ROW_RIGHT` table 111,596 → 273,918. Component costs after:
+  `transpose` 0.38us, `_reverse_rows` 0.28us, `_slide_left` 0.63us, `move` 0.86–1.86us
+  by direction, `spawn` 1.89us of which `empty_cells` is 1.58us.
+- After those three, `spawn`/`empty_cells` is the largest single cost per applied move
+  and is **not** one of the logged candidates. Untouched because the gate was already
+  cleared; first place to look if throughput must go further.
+- `tables.py` now also builds `ROW_RIGHT` / `ROW_SCORE_RIGHT` by mirroring the left
+  tables. Import cost is roughly double TASK-06's 0.14s and about 2 MB resident, in
+  exchange for `right` being a plain lookup and `down` being transpose-lookup-transpose.

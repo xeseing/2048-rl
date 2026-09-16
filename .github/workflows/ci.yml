@@ -40,6 +40,8 @@ jobs:
       - run: pytest -q
       - name: Fast differential test (5k games)
         run: python -m game2048.bench.differential --games 5000 --seed 1234
+      - name: Smoke throughput (informational, no gate)
+        run: python -m game2048.bench.engine_bench --seconds 5
 
   secrets:
     name: secret-scan
