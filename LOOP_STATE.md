@@ -19,10 +19,10 @@
 | `TASK-03` | Spawn + determinism tests (0.9/0.1, uniform empties, seeded replay) | P0 | chi-square p > 0.01; identical transcripts; score invariant | [x] DONE | #4 (b06a7c0) |
 | `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises, env byte-identical | [x] DONE | #5 (9bdc4d0) |
 | `TASK-05` | Terminal render + `python -m game2048 play` (human playable; the `2048rl` script is TASK-19) | P2 | Manual: play one game to game-over | [x] DONE | #6 (e5b85c5) |
-| `TASK-06` | `tables.py`: 65536-row tables built from the naive oracle | P0 | Table entries == naive row moves, all 65536 | [x] DONE | #8 |
-| `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [ ] PENDING | — |
+| `TASK-06` | `tables.py`: 65536-row tables built from the naive oracle | P0 | Table entries == naive row moves, all 65536 | [x] DONE | #8 (c724377) |
+| `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [x] DONE | #9 |
 | `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [ ] PENDING | — |
-| `TASK-09` | Throughput benchmark; adds the throughput gate to `ci.yml` and the heavy steps to `nightly.yml`; **re-enables nightly's `schedule:` trigger**, commented out in TASK-01 because the modules it invokes did not exist | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [ ] PENDING | — |
+| `TASK-09` | Throughput benchmark; adds the throughput gate to `ci.yml` and the heavy steps to `nightly.yml`; **re-enables nightly's `schedule:` trigger**, commented out in TASK-01 because the modules it invokes did not exist; owns the optimisation candidates listed below | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [ ] PENDING | — |
 | `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [ ] PENDING | — |
 | `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [ ] PENDING | — |
 | `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [ ] PENDING | — |
@@ -50,6 +50,28 @@ its own gate.
 TASK-10 and first measured by the TASK-11 eval harness — same milestone as before, both
 tasks renumbered by the swap above) · v0.3.0 after TASK-12 · v0.4.0 after TASK-13 · v0.5.0 after TASK-16 · v1.0.0 after TASK-23
 
+### Optimisation candidates deferred to TASK-09
+
+TASK-07 was written for readability and correctness only; no benchmark has been run
+and nothing here has been measured. Profile first, then take these in order of
+what the profile actually says:
+
+1. **`transpose` is a 16-iteration Python loop** doing two shifts and a mask per cell.
+   The standard mask-and-shift trick does it in three steps. This is on the `up` and
+   `down` path twice per move, so it is the first place to look.
+2. **`_reverse_rows` is another per-cell loop.** Either the same mask-and-shift
+   treatment, or a 65536-entry `REVERSE_ROW` table built the same way as `ROW_LEFT`.
+3. **A `ROW_RIGHT` table would delete `_reverse_rows` from the `right` and `down`
+   paths entirely** — one extra megabyte to remove two reversals per move.
+4. **`legal_moves` calls `move` four times**, and each call redoes the full
+   reorientation. A single pass that slides all four directions could share work.
+5. **Table storage**: `ROW_LEFT` / `ROW_SCORE` are tuples of Python ints. Measure
+   `list` and `array.array` before assuming; CPython tuple indexing is already fast.
+6. **`move` compares `moved == board` to set `changed`**, which is correct and cheap;
+   listed only so nobody "optimises" it into a per-cell scan.
+
+---
+
 **Do not start TASK-12 before TASK-08 and TASK-09 are green.** Training on an unverified
 or slow engine is the single most expensive mistake available in this project.
 
@@ -58,14 +80,15 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-06`
-- **Branch:** `task/06-tables` (#8)
+### Current Active Task: `TASK-07`
+- **Branch:** `task/07-bitboard` (#9)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 154 passed; `ruff check .` → All checks
-  passed; `ruff format --check .` → 13 files already formatted. All 65536 rows of
-  both tables verified against `naive.slide_row_left`. Seven mutants of `tables.py`
-  each caught by the intended test, including a *correct* hand-written build that
-  passes the exhaustive comparison and is caught only by the delegation test.
+- **Last Verification Result:** `pytest -q` → 206 passed in 2.44s; `ruff check .` →
+  All checks passed; `ruff format --check .` → 16 files already formatted. The
+  bitboard engine passes the same golden cases as the naive engine, read from
+  `tests/golden_cases.py` rather than re-typed. Nine mutants of `bitboard.py` each
+  caught by the intended test, including one that checks for overflow on the `left`
+  path only. No benchmark run — throughput is TASK-09.
 - **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
 - **Corrective Action Plan:** `None` — awaiting merge approval.
@@ -75,7 +98,7 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 154 / 154
+- **Passing Tests:** 206 / 206
 - **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** — moves/sec (gate: 200,000)
 - **Differential Test:** NOT RUN
