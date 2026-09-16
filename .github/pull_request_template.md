@@ -18,6 +18,8 @@ Paste the actual command and its actual output. Not a summary.
 - [ ] `memory/` updated if anything was learned (FACTS / DECISIONS / FAILURES / EXPERIMENTS)
 - [ ] No weights, secrets, or `.env` in the diff
 - [ ] Diff touches only this task
+- [ ] If `SPECS.md` changed: is it a criterion/gate/signature/target? Then there is a
+      `## SPECS CHANGED` section above with old text, new text, evidence, and the ADR
 
 ## Metric delta (if applicable)
 | Metric | Before | After |
