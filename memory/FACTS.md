@@ -101,3 +101,21 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   lookup. (ADR-013)
 - Building both tables costs 0.140s at import and ~1.0 MB resident. No on-disk cache
   yet; `.gitignore` already anticipates `_tables_cache.npy` if that ever matters.
+- Bitboard packing: 16 nibbles of log2(tile), row-major, cell (0,0) in the **highest**
+  nibble. Row `r` occupies bits `16*(3-r)..16*(3-r)+15`, so a row lifted straight out
+  of a board is exactly the 16-bit key `tables.ROW_LEFT` is indexed by — no shuffling
+  between the board layout and the table layout.
+- `bitboard.py` mirrors `naive.py`'s structure move for move (reorient, slide, reorient
+  back) so the two can be read side by side. Only the row slide differs: a table lookup
+  instead of compress/merge/compress.
+- `bitboard._slide_left` checks `tables.OVERFLOW_ROW` **before** using the looked-up
+  value, on every row, so all four directions are covered by one check. A mutant that
+  guarded only the `left` path passes 42 of 47 tests and is caught solely by the
+  per-direction overflow tests. (ADR-013)
+- `bitboard.spawn` draws cell first, value second, and `empty_cells` returns row-major
+  indices — identical to `naive.spawn`, so both engines consume the same RNG stream
+  from the same seed. `test_spawn_consumes_the_rng_exactly_as_the_naive_engine_does`
+  asserts `rng.getstate()` matches after 16 spawns. TASK-08's differential test depends
+  on this.
+- Golden test values live once, in `tests/golden_cases.py`, and are read by both
+  engines' test modules. Neither file re-types an expected board.
