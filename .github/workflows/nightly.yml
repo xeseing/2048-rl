@@ -24,14 +24,14 @@ jobs:
       - name: Throughput gate (>= 200k moves/sec)
         run: python -m game2048.bench.engine_bench --seconds 30 --gate 200000
 
-      # Deferred to TASK-11, which builds game2048.train.evaluate. Re-enabling
-      # the schedule with this step live would make nightly fail every night on
-      # a missing module — the exact thing TASK-01 disabled the schedule to
-      # avoid. Each task adds its own gate (version-control rule 9).
-      # - name: Baseline eval (1000 held-out seeds)
-      #   run: |
-      #     python -m game2048.train.evaluate --agent random    --games 1000 --seed-base 900000
-      #     python -m game2048.train.evaluate --agent heuristic --games 1000 --seed-base 900000
+      # Seeds 900000+ are the held-out eval range. Reports are tee'd into the
+      # artifact; the default Actions shell runs with pipefail, so a failed
+      # gate still fails the step.
+      - name: Baseline eval (1000 held-out seeds)
+        run: |
+          mkdir -p runs/_nightly
+          python -m game2048.train.evaluate --agent random    --games 1000 --seed-base 900000 | tee runs/_nightly/random.txt
+          python -m game2048.train.evaluate --agent heuristic --games 1000 --seed-base 900000 | tee runs/_nightly/heuristic.txt
 
       - name: Upload eval reports
         if: always()
@@ -39,6 +39,6 @@ jobs:
         with:
           name: nightly-eval
           path: runs/_nightly/
-          # Nothing writes here until TASK-11. Warn rather than fail, so the
-          # empty upload does not turn nightly red before the eval step exists.
-          if-no-files-found: warn
+          # The eval step writes here. An empty upload means it silently
+          # stopped writing, which should be loud.
+          if-no-files-found: error
