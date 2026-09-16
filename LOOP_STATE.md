@@ -17,8 +17,8 @@
 | `TASK-01` | Repo skeleton, `pyproject.toml` (`game2048` package + `[dev]` extra), ruff, pytest, one trivial passing test; adds the `test` job to `ci.yml` | P0 | `pytest -q` exits 0; `ruff check .` + `ruff format --check .` clean | [x] DONE | #2 (1b1402e) |
 | `TASK-02` | Naive engine: `move_left` + rotations, spawn, score, game-over | P0 | Golden move tests, merge-once, edge-order | [x] DONE | #3 (6d4a9b2) |
 | `TASK-03` | Spawn + determinism tests (0.9/0.1, uniform empties, seeded replay) | P0 | chi-square p > 0.01; identical transcripts; score invariant | [x] DONE | #4 (b06a7c0) |
-| `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises, env byte-identical | [x] DONE | #5 |
-| `TASK-05` | Terminal render + `2048rl play` (human playable) | P2 | Manual: play one game to game-over | [ ] PENDING | — |
+| `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises, env byte-identical | [x] DONE | #5 (9bdc4d0) |
+| `TASK-05` | Terminal render + `python -m game2048 play` (human playable; the `2048rl` script is TASK-19) | P2 | Manual: play one game to game-over | [x] DONE | #6 |
 | `TASK-06` | `tables.py`: 65536-row tables built from the naive oracle | P0 | Table entries == naive row moves, all 65536 | [ ] PENDING | — |
 | `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [ ] PENDING | — |
 | `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [ ] PENDING | — |
@@ -58,12 +58,14 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-04`
-- **Branch:** `task/04-env` (#5)
+### Current Active Task: `TASK-05`
+- **Branch:** `task/05-play` (#6)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 88 passed in 1.19s; `ruff check .` → All
-  checks passed; `ruff format --check .` → 7 files already formatted. Six mutants of
-  `env.py` were each caught by the intended test (see PR body).
+- **Last Verification Result:** `pytest -q` → 129 passed in 1.19s; `ruff check .` → All
+  checks passed; `ruff format --check .` → 11 files already formatted. Six mutants of
+  `app.py` / `render.py` / `env.render` each caught by the intended test. Playthrough
+  to game over via `app.main(["play", "--seed", "7"])`: score 2748, 221 moves,
+  best tile 256.
 - **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
 - **Corrective Action Plan:** `None` — awaiting merge approval.
@@ -73,7 +75,7 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 88 / 88
+- **Passing Tests:** 129 / 129
 - **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** — moves/sec (gate: 200,000)
 - **Differential Test:** NOT RUN

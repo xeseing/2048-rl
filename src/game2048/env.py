@@ -19,7 +19,7 @@ on a world that does not exist, and nothing visibly fails.
 import random
 from typing import Literal
 
-from game2048 import naive
+from game2048 import naive, render
 
 Move = Literal["up", "down", "left", "right"]
 State = list[list[int]]
@@ -107,17 +107,5 @@ class Env:
         return self.state, reward, done, info
 
     def render(self) -> str:
-        """The board as plain text. TASK-21 adds colour; this never stops working."""
-        width = max(len(str(value)) for row in self._board for value in row)
-        width = max(width, 4)
-        rule = "+" + ("-" * (width + 2) + "+") * naive.SIZE
-
-        lines = [f"score {self.score}"]
-        for row in self._board:
-            lines.append(rule)
-            cells = "".join(
-                f" {(str(value) if value else '.'):>{width}} |" for value in row
-            )
-            lines.append("|" + cells)
-        lines.append(rule)
-        return "\n".join(lines)
+        """The board as text. Returns; never prints — see render.py."""
+        return render.frame(self._board, self.score, self.moves)
