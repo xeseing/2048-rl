@@ -210,6 +210,17 @@ def test_new_game_matches_the_naive_engine_from_the_same_seed():
     )
 
 
+def test_empty_cells_matches_a_cell_by_cell_scan():
+    """Row-major, nibble 8 (tile 256) has only its top bit set, so it tests the `>> 3`."""
+    rng = random.Random(3)
+    for _ in range(5000):
+        grid = [[rng.choice((0, 0, 2, 256, 32768)) for _ in range(4)] for _ in range(4)]
+        expected = [4 * r + c for r in range(4) for c in range(4) if grid[r][c] == 0]
+        assert bitboard.empty_cells(bitboard.encode(grid)) == expected
+    assert bitboard.empty_cells(0) == list(range(16))
+    assert bitboard.empty_cells(bitboard.encode(DEAD)) == []
+
+
 def test_spawn_on_a_full_board_is_an_error():
     with pytest.raises(ValueError):
         bitboard.spawn(bitboard.encode(DEAD), random.Random(0))
