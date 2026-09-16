@@ -158,7 +158,8 @@ probability cutoff (skip branches below ~1e-4) if depth 3 is too slow.
   fixed set of `n` cells; its index is the `n` nibbles read as base-16. Sparse, linear,
   and a genuine learned network — just not a deep one.
 - **Stage 1 (TASK-12):** 4 × 5-tuples. `16^5 = 1,048,576` entries each → ~4 MB float32
-  per tuple, ~17 MB total. Trains to something watchable in minutes.
+  per tuple; 4,194,304 float32 weights = 16.8 MB in memory, 5.4 MB
+  compressed on disk (td-01). Trains to something watchable in minutes.
 - **Stage 2 (TASK-13):** 4 × 6-tuples (two rows + two squares). `16^6 = 16,777,216`
   entries each → ~67 MB each, **~268 MB total**. Check RAM before starting; this is
   the number that surprises people.
@@ -251,7 +252,8 @@ demonstration this project has. Prioritize it over any other polish.
 
 ### 6.4 Weight distribution
 
-Weights are 17 MB (Stage 1) and ~268 MB (Stage 2). They are **not** in git.
+Stage 1 weights are 16.8 MB in memory and 5.4 MB compressed on disk; Stage 2 is ~268 MB
+in memory. They are **not** in git.
 `fetch-weights` pulls them from the GitHub Release matching the installed version,
 verifies a SHA-256 recorded in `runs/<id>/config.json`, and caches to the user's
 platform cache dir. Corrupt or missing checksum → hard failure, never silent fallback

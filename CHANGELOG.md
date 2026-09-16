@@ -37,6 +37,12 @@ N-tuple Stage 1 learns: the first self-taught agent. Run `td-01`; its manifest i
   2048 rate, 50% 4096 rate).
 - 300 tests.
 
+### Assets
+- `td-01-weights.npz` (5,444,539 bytes), SHA-256
+  `473a8924ea4c3c00195f4dc0939b2a8daaf0f48e12cc7728f65cd748e8f0b572`, recorded in
+  `runs/td-01/config.json` under `weights`. Uploaded after the tag; a re-download
+  matched the checksum.
+
 ## [0.2.0] - 2026-09-16
 
 Baselines built and measured by the shared eval harness. Scores are deterministic from

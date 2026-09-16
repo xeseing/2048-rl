@@ -35,5 +35,12 @@
       8,
       9
     ]
-  ]
+  ],
+  "weights": {
+    "file": "weights.npz",
+    "sha256": "473a8924ea4c3c00195f4dc0939b2a8daaf0f48e12cc7728f65cd748e8f0b572",
+    "bytes": 5444539,
+    "release": "v0.3.0",
+    "asset": "td-01-weights.npz"
+  }
 }

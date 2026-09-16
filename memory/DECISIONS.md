@@ -159,3 +159,9 @@ Format:
 - **Rejected:** `alpha / 4`. It moves V by 8x alpha x delta per update — the divergence SPECS trap 6 warns about, with symmetric sampling as the multiplier.
 - **Rejected (for now):** alpha decay. SPECS says "decayed"; the constant-alpha run is measured first and decay is added only if the gate needs it.
 - **Consequence:** games in a batch read the same weights and their updates land together, which is not strictly sequential TD. Batch 64 learned as well as 16; batch 256 did not learn (F-001).
+
+### ADR-023 — Weights asset naming and the checksum record (2026-09-17)
+- **Context:** v0.3.0 is the first release with a downloadable artifact, and TASK-20's `fetch-weights` needs something to verify. ADR-005 puts the SHA-256 in `runs/<id>/config.json` but does not fix the asset name or the record's shape.
+- **Decision:** The asset is named `<run_id>-weights.npz` (`td-01-weights.npz`), and `config.json` gets a `weights` object: `file`, `sha256`, `bytes`, `release`, `asset`. The checksum is taken from the local file, then checked again against a fresh download of the uploaded asset before it is recorded.
+- **Rejected:** Uploading the file as plain `weights.npz`. A release that later ships Stage 1 and Stage 2 side by side would have two assets with the same name, and a download could not tell which run it came from.
+- **Consequence:** `fetch-weights` resolves a run as release `weights.release` + asset `weights.asset`, verifies `weights.sha256`, and fails hard if the `weights` object is missing. `td_train` does not write this object; it is added when the weights are published.
