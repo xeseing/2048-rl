@@ -116,6 +116,13 @@ Full conventions in `GIT_WORKFLOW.md`. The non-negotiable subset:
    gate skip silently.** `ci.yml` grows with the repo: it may only invoke commands that
    already exist on `main`. A step guarded by `if: hashFiles(...)` reports green while
    testing nothing, which is worse than no step at all.
+10. **A PR that edits `SPECS.md` says so under a `## SPECS CHANGED` heading** whenever
+    the edit moves an acceptance criterion, a verification gate, a frozen signature, or
+    a numeric target. State the old text, the new text, and the evidence that forced
+    the change, and cite the ADR. The point is that the human cannot skim past a moved
+    goalpost. Structural edits — wording, formatting, a clarifying sentence that changes
+    no criterion — do not need the heading. Editing SPECS itself needs no advance
+    sign-off: correct the contract first, log the ADR, and flag it in the PR.
 
 ---
 

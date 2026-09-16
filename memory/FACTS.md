@@ -38,3 +38,12 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   therefore visible in all four directions at once, never in just one. (ADR-009)
 - `spawn()` draws cell first, then value. That order is part of what a seed
   reproduces — swapping it invalidates every recorded transcript.
+- The score invariant is `score == Σ w(tile on board) - Σ w(spawned tile)` with
+  `w(v) = v·(log₂v - 1)` (`v * (v.bit_length() - 2)` for powers of two). The
+  unweighted form is identically 0: a merge conserves the board's tile sum, so
+  `sum(tiles) == sum(spawned)` always. Measured on seed 0: score 2260, sum(tiles) 420,
+  sum(spawned) 420, weighted difference 2260. (ADR-010)
+- Chi-square uniformity in the tests compares the statistic against tabulated
+  alpha=0.01 critical values (df 15 -> 30.578, df 4 -> 13.277) rather than computing a
+  p-value; scipy is not a dependency and an incomplete gamma in a test file is not
+  worth owning.
