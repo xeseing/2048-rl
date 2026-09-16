@@ -23,7 +23,7 @@
 | `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [x] DONE | #9 (88aee30) |
 | `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [x] DONE | #10 (8b8f7a4) |
 | `TASK-09` | Throughput benchmark; informational smoke step in `ci.yml`, full gate in `nightly.yml`; **re-enabled nightly's `schedule:` trigger** | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [x] DONE | #11 |
-| `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [ ] PENDING | — |
+| `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [x] DONE | #13 |
 | `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram; **re-enables nightly's baseline-eval step**, commented out in TASK-09 because the module did not exist | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [ ] PENDING | — |
 | `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [ ] PENDING | — |
 | `TASK-13` | **N-tuple Stage 2**: 4×6-tuples, checkpointing, resume | P0 | 1M games → ≥ 40,000 mean, ≥ 90% 2048 | [ ] PENDING | — |
@@ -80,27 +80,25 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-09`
-- **Branch:** `task/09-throughput` (#11)
+### Current Active Task: `TASK-10`
+- **Branch:** `task/10-agents` (#13)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 231 passed; `ruff check .` → All checks
-  passed; `ruff format --check .` → 20 files already formatted. Throughput on a
-  quiet dev machine, seven 15s runs: min 236,847, **median 267,359**, max 276,410
-  moves/sec (gate 200,000). Gate discrimination proved first: with a
-  `time.sleep(0.00001)` per move, `--gate 200000` reports FAIL and exits 1, while
-  the same slowed engine with no `--gate` exits 0.
+- **Last Verification Result:** `pytest -q` → 255 passed; ruff clean. Gate, plain loop,
+  seeds 0–999: random mean 1,084 (0 `IllegalMove`); heuristic mean 11,577, median
+  10,544, 2048 rate 7.4% (0 `IllegalMove`) — 10.7× random. Mutation run: 21 mutants,
+  21 killed (one survivor, rows-only monotonicity, killed by a test added for it).
 - **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
-- **Corrective Action Plan:** `None` — awaiting merge approval.
+- **Corrective Action Plan:** `None`.
 
 ---
 
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 231 / 231
+- **Passing Tests:** 255 / 255
 - **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** 267,359 moves/sec median, 236,847 worst of 7 (gate: 200,000)
 - **Differential Test:** 100,000 games, seed 7 — 0 divergences (TASK-08)
-- **Best Agent:** — (mean score —, 2048 rate —)
+- **Best Agent:** — (baselines only: heuristic 11,577 mean, 7.4% 2048; random 1,084)
 - **Milestones Completed:** None
