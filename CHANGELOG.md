@@ -7,6 +7,36 @@ Every entry must contain a **measured number**, not an adjective.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-17
+
+N-tuple Stage 1 learns: the first self-taught agent. Run `td-01`; its manifest is in
+`runs/td-01/` and its weights are gitignored.
+
+### Added
+- N-tuple Stage 1 value network: 4 × 5-tuples with 8-way symmetric updates, TD(0) on
+  afterstates, greedy on `r + V(s')`, no exploration bonus, no reward shaping (reward
+  is the environment's merge score). 4,194,304 float32 weights = 16.8 MB in memory,
+  5.4 MB compressed on disk.
+- `python -m game2048.train.td_train --run <id> --games N --seed S`: batched self-play
+  trainer (64 games side by side on the bitboard engine). It refuses seeds >= 900000 and
+  will not overwrite an existing run.
+- `python -m game2048.train.evaluate --agent ntuple --weights <path>`, gate
+  `mean >= 15000 and 2048 rate >= 50%`.
+
+### Verified
+- Training: 100,000 games, seed 1, 4,251 seconds wall time on the dev machine, numpy
+  only, no GPU.
+- Training curve, last 1,000 games: mean 64,783, 2048 rate 96.2%.
+- Held-out evaluation, seeds 900000..900999, 1,000 games: mean 64,492, median 70,620,
+  max 133,928, 2048 rate 96.4%, 4096 rate 77.2%, 8192 rate 3.9%, 0.115 ms/move.
+- Max-tile histogram over those 1,000 games: 256: 3 · 512: 8 · 1024: 25 · 2048: 192 ·
+  4096: 733 · 8192: 39.
+- Gate (SPECS §5, TASK-12): 15,000 mean, 50% 2048 rate. Cleared by 4.3x on mean and
+  1.93x on win rate.
+- The Stage 1 network already exceeds the Stage 2 gate from SPECS §5 (40,000 mean, 90%
+  2048 rate, 50% 4096 rate).
+- 300 tests.
+
 ## [0.2.0] - 2026-09-16
 
 Baselines built and measured by the shared eval harness. Scores are deterministic from
