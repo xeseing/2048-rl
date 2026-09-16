@@ -160,3 +160,17 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 - `tables.py` now also builds `ROW_RIGHT` / `ROW_SCORE_RIGHT` by mirroring the left
   tables. Import cost is roughly double TASK-06's 0.14s and about 2 MB resident, in
   exchange for `right` being a plain lookup and `down` being transpose-lookup-transpose.
+- **Baselines (TASK-10), plain loop, seeds 0–999, naive-backed `Env`:** random mean
+  1,084 (median 1,064, max 3,264, 0% 2048); heuristic mean 11,577 (median 10,544,
+  max 43,356, 2048 rate 7.4%, 1024 rate 51.8%). Zero `IllegalMove` from either.
+  1000 heuristic games take ~76s on the dev machine. Weights and why: ADR-017.
+- The heuristic's lever is smoothness: raising its weight from 0.1 to 0.5 took the mean
+  from 7,765 to 11,708 on tuning seeds; empty/monotonicity/corner weights barely mattered.
+- `heuristic.act` holds TASK-04's afterstate-purity guarantee in practice: the env's
+  fingerprint (RNG state included) is unchanged across 300 consecutive `act` calls.
+  A mutant that draws one number from `env._rng` is caught only by that fingerprint.
+- Tests reuse `fingerprint`, `with_board`, `WEDGED`, `DEAD` by `from test_env import ...`
+  (tests/ is on sys.path, as for `golden_cases`); no copies.
+- A monotonicity mutant that checked rows only survived a suite whose boards were all
+  symmetric in rows and columns. Feature tests need at least one board where rows and
+  columns disagree.
