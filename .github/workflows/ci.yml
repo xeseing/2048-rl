@@ -38,6 +38,8 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - run: pytest -q
+      - name: Fast differential test (5k games)
+        run: python -m game2048.bench.differential --games 5000 --seed 1234
 
   secrets:
     name: secret-scan

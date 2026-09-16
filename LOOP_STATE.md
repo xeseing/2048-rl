@@ -20,8 +20,8 @@
 | `TASK-04` | `env.py` with the frozen API from SPECS §2.3, `IllegalMove` raise | P0 | Illegal move: no spawn, no score, raises, env byte-identical | [x] DONE | #5 (9bdc4d0) |
 | `TASK-05` | Terminal render + `python -m game2048 play` (human playable; the `2048rl` script is TASK-19) | P2 | Manual: play one game to game-over | [x] DONE | #6 (e5b85c5) |
 | `TASK-06` | `tables.py`: 65536-row tables built from the naive oracle | P0 | Table entries == naive row moves, all 65536 | [x] DONE | #8 (c724377) |
-| `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [x] DONE | #9 |
-| `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [ ] PENDING | — |
+| `TASK-07` | `bitboard.py`: uint64 board, transpose, 4 directions, overflow assert | P0 | Golden tests pass on bitboard engine too | [x] DONE | #9 (88aee30) |
+| `TASK-08` | **Differential test**: 100k random games, naive vs bitboard; adds the 5k differential step to `ci.yml` | P0 | `python -m game2048.bench.differential --games 100000 --seed 7` — zero divergences | [x] DONE | #10 |
 | `TASK-09` | Throughput benchmark; adds the throughput gate to `ci.yml` and the heavy steps to `nightly.yml`; **re-enables nightly's `schedule:` trigger**, commented out in TASK-01 because the modules it invokes did not exist; owns the optimisation candidates listed below | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [ ] PENDING | — |
 | `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [ ] PENDING | — |
 | `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [ ] PENDING | — |
@@ -80,15 +80,15 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-07`
-- **Branch:** `task/07-bitboard` (#9)
+### Current Active Task: `TASK-08`
+- **Branch:** `task/08-differential` (#10)
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 206 passed in 2.44s; `ruff check .` →
-  All checks passed; `ruff format --check .` → 16 files already formatted. The
-  bitboard engine passes the same golden cases as the naive engine, read from
-  `tests/golden_cases.py` rather than re-typed. Nine mutants of `bitboard.py` each
-  caught by the intended test, including one that checks for overflow on the `left`
-  path only. No benchmark run — throughput is TASK-09.
+- **Last Verification Result:** `pytest -q` → 226 passed; `ruff check .` → All checks
+  passed; `ruff format --check .` → 18 files already formatted.
+  100,000 games, seed 7, **0 divergences** (1449.8s, 14.5ms per game). 5,000 games, seed 1234, 0
+  divergences — the CI fast lane. Harness discrimination proved first: an
+  off-by-one in `bitboard._reverse_rows` is caught on game 1, move 2, exit code 1.
+  No benchmark run — throughput is still TASK-09.
 - **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .`
 - **Errors / Tracebacks:** `None`
 - **Corrective Action Plan:** `None` — awaiting merge approval.
@@ -98,9 +98,9 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** none
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 206 / 206
+- **Passing Tests:** 226 / 226
 - **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** — moves/sec (gate: 200,000)
-- **Differential Test:** NOT RUN
+- **Differential Test:** 100,000 games, seed 7 — 0 divergences (TASK-08)
 - **Best Agent:** — (mean score —, 2048 rate —)
 - **Milestones Completed:** None
