@@ -202,3 +202,12 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   (only an explicit `shell: bash` adds it). `cmd | tee` there exits with tee's 0 even
   when `cmd` fails. Seen in nightly run 35103176690's log; nightly's eval step now opens
   with `set -o pipefail`. (ADR-021)
+- **Track A Stage 1 (td-01, TASK-12):** 100k games, seed 1, 4,251s on the dev machine.
+  Held-out eval (seed-base 900000, 1000 games): mean 64,492, median 70,620, max
+  133,928, 2048 rate 96.4%, 4096 rate 77.2%, 0.110 ms/move (327s). Training-window
+  mean passed 12,900 by game 1,000 and 47,000 by game 29,000.
+- Batched TD trainer throughput falls as play improves: ~35s per 1,000 games at a
+  47k mean. `weights.npz` for Stage 1 is 5.4 MB compressed (16.8 MB float32 in RAM).
+- `np.add.at` is required in `NTupleNetwork.update`: fancy-index `+=` drops repeated
+  indices, and a batch repeats them. Only `test_repeated_boards_in_one_batch_accumulate`
+  catches the swap.

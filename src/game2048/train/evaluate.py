@@ -11,6 +11,7 @@ agent that scores 3,000 is not random, whatever its code says.
 """
 
 import argparse
+import functools
 import json
 import statistics
 import sys
@@ -19,12 +20,24 @@ from collections import Counter
 from dataclasses import dataclass
 
 from game2048.agents.heuristic import HeuristicAgent
+from game2048.agents.ntuple import NTupleAgent, NTupleNetwork
 from game2048.agents.random_agent import RandomAgent
 from game2048.env import Env
+
+# Trained weights for `--agent ntuple`; `--weights` replaces it.
+WEIGHTS = "runs/td-01/weights.npz"
+
+
+@functools.cache
+def load_ntuple(path: str) -> NTupleAgent:
+    """One load per path, not per game: the agent holds no per-game state."""
+    return NTupleAgent(NTupleNetwork.load(path))
+
 
 AGENTS = {
     "random": lambda seed: RandomAgent(seed=seed),
     "heuristic": lambda seed: HeuristicAgent(),
+    "ntuple": lambda seed: load_ntuple(WEIGHTS),
 }
 
 
@@ -80,6 +93,10 @@ GATES = {
     "heuristic": (
         "mean >= 3000 and 2048 rate >= 5%",
         lambda r: r.mean >= 3000 and r.rate(2048) >= 0.05,
+    ),
+    "ntuple": (
+        "mean >= 15000 and 2048 rate >= 50%",
+        lambda r: r.mean >= 15000 and r.rate(2048) >= 0.5,
     ),
 }
 
@@ -147,12 +164,15 @@ def as_json(report: Report) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    global WEIGHTS
     parser = argparse.ArgumentParser(prog="python -m game2048.train.evaluate")
     parser.add_argument("--agent", choices=sorted(AGENTS), required=True)
     parser.add_argument("--games", type=int, default=1000)
     parser.add_argument("--seed-base", type=int, default=900_000)
     parser.add_argument("--json", action="store_true", help="machine-readable output")
+    parser.add_argument("--weights", default=WEIGHTS, help="ntuple weights file")
     args = parser.parse_args(argv)
+    WEIGHTS = args.weights
 
     report = evaluate(args.agent, args.games, args.seed_base)
     print(as_json(report) if args.json else table(report))

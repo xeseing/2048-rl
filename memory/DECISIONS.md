@@ -151,3 +151,11 @@ Format:
 - **Rejected:** `shell: bash` on the step. It also adds pipefail, but only by a documented side effect that is exactly the kind of thing that was misremembered here; the `set` line says what it does.
 - **Rejected:** Dropping `tee` and redirecting to a file. The table would vanish from the job log, which is where a failure is read first.
 - **Consequence:** Any future `run:` step that pipes a gated command needs the same line.
+
+### ADR-022 — Track A Stage 1: batched self-play on the bitboard engine, `alpha / 32`, constant alpha (2026-09-17)
+- **Context:** TASK-12 needs 100k TD(0) games. A per-board Python loop (32 index computations per afterstate, 4 afterstates per move) projected to several hours.
+- **Decision:** `train/td_train.py` plays 64 games side by side on `bitboard.py` (already differentially tested against the oracle) and runs lookups/updates as numpy batches over `(N, 16)` exponent arrays; `agents/ntuple.py` owns the network, the update and the `Env`-only agent, which reads boards through the same `indices`. SPECS' `alpha / num_tuples` is read as alpha over the 32 LUT reads per board (4 tuples x 8 symmetries), so one update moves V by alpha x delta. Tuples: `(0,1,2,3,4)`, `(4,5,6,7,8)`, `(0,1,2,4,5)`, `(4,5,6,8,9)`. Alpha held at 0.1.
+- **Rejected:** A third, numpy-vectorised engine. Faster again, but it would need its own differential proof; the bitboard engine already has one.
+- **Rejected:** `alpha / 4`. It moves V by 8x alpha x delta per update — the divergence SPECS trap 6 warns about, with symmetric sampling as the multiplier.
+- **Rejected (for now):** alpha decay. SPECS says "decayed"; the constant-alpha run is measured first and decay is added only if the gate needs it.
+- **Consequence:** games in a batch read the same weights and their updates land together, which is not strictly sequential TD. Batch 64 learned as well as 16; batch 256 did not learn (F-001).

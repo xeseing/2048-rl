@@ -3,7 +3,7 @@
 ## Project Overview
 - **Objective:** 2048 engine + an agent that learns to play it from self-play (N-tuple TD network, plus a DQN track for comparison), shipped as an installable app.
 - **Repo:** `github.com/xeseing/2048-rl` · **Branch model:** `task/<NN>-<slug>` → PR → squash to `main`
-- **Current Phase:** Phase 0 — TASK-00 in flight (attempt 1/4)
+- **Current Phase:** v0.3.0 milestone — TASK-12 done (#19); TASK-13 next, not started
 - **Circuit Breaker Limit:** 4 retries per task
 - **Contract:** `SPECS.md` · **Knowledge:** `memory/` · **Rules:** `CLAUDE.md` · **Git:** `GIT_WORKFLOW.md`
 
@@ -25,7 +25,7 @@
 | `TASK-09` | Throughput benchmark; informational smoke step in `ci.yml`, full gate in `nightly.yml`; **re-enabled nightly's `schedule:` trigger** | P1 | `python -m game2048.bench.engine_bench --seconds 30 --gate 200000` ≥ 200,000 moves/sec | [x] DONE | #11 |
 | `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [x] DONE | #13 |
 | `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram; **re-enables nightly's baseline-eval step**, commented out in TASK-09 because the module did not exist | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [x] DONE | #14 |
-| `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [ ] PENDING | — |
+| `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [x] DONE | #19 |
 | `TASK-13` | **N-tuple Stage 2**: 4×6-tuples, checkpointing, resume | P0 | 1M games → ≥ 40,000 mean, ≥ 90% 2048 | [ ] PENDING | — |
 | `TASK-14` | Expectimax depth-3 reference ceiling | P2 | ≥ 20,000 mean, ≥ 80% 2048 | [ ] PENDING | — |
 | `TASK-15` | **DQN Track B**: one-hot planes, (2,1)/(1,2) convnet, Double DQN | P1 | Smoke run 10k steps, loss finite, no NaN | [ ] PENDING | — |
@@ -82,28 +82,27 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-11`
-- **Branch:** `task/11-evaluate` (#14)
+### Current Active Task: `TASK-12`
+- **Branch:** `task/12-ntuple-stage1`
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 281 passed; ruff clean.
-  `evaluate --agent random --games 1000 --seed-base 900000` → mean 1,108, gate PASS,
-  exit 0. `--agent heuristic` same seeds → mean 11,548, 2048 rate 7.0%, gate PASS,
-  exit 0. Out-of-range proof through the real CLI: heuristic in the random slot
-  (mean 12,034) and first-legal-move "random" (mean 818) both FAIL, exit 1.
-  Mutation run: 24 mutants, 24 killed (5 survived the first pass; tests fixed).
-- **Command Run:** `pytest -q` / `ruff check .` / `ruff format --check .` / the two
-  eval commands above
+- **Last Verification Result:** `pytest -q` → 300 passed; ruff clean. Run td-01
+  (100k games, seed 1, 4,251s). `evaluate --agent ntuple --games 1000 --seed-base
+  900000 --weights runs/td-01/weights.npz` → mean 64,492, 2048 rate 96.4%,
+  4096 rate 77.2%, gate PASS, exit 0. Mutation run: 8 mutants, 8 killed (1 survived
+  the first pass; test added).
+- **Command Run:** the gates above, plus the eval command
 - **Errors / Tracebacks:** `None`
-- **Corrective Action Plan:** `None`.
+- **Corrective Action Plan:** `None`. Weights are local only until TASK-20 publishes
+  them; nightly cannot eval `ntuple` until then.
 
 ---
 
 ## 🏁 Shipped Deliverables & Metrics
 - **Latest Tag:** v0.2.0 (baselines; v0.1.0 at 888a6cf)
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
-- **Passing Tests:** 281 / 281
+- **Passing Tests:** 300 / 300
 - **Lint Status:** clean (`ruff` 0.16.7)
 - **Engine Throughput:** 222,045 moves/sec, nightly 30s on ubuntu-latest / Python 3.12 (gate: 200,000)
 - **Differential Test:** 100,000 games, seed 7 — 0 divergences (TASK-08)
-- **Best Agent:** — (baselines only, held-out seeds 900000+: heuristic 11,548 mean, 7.0% 2048; random 1,108)
+- **Best Agent:** N-tuple Stage 1 (td-01): held-out mean 64,492, 2048 rate 96.4%, 4096 rate 77.2% (baselines, held-out seeds 900000+: heuristic 11,548 mean, 7.0% 2048; random 1,108)
 - **Milestones Completed:** None
