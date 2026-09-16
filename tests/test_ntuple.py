@@ -17,6 +17,7 @@ from test_env import fingerprint, with_board
 from game2048 import bitboard
 from game2048.agents.ntuple import (
     STAGE1,
+    STAGE2,
     NTupleAgent,
     NTupleNetwork,
     grid_exponents,
@@ -190,6 +191,64 @@ def test_cli_writes_the_run_manifest_and_refuses_to_overwrite(tmp_path):
     assert (out / "metrics.csv").read_text().count("\n") == 3  # header + 2 rows
     with pytest.raises(FileExistsError):
         td_train.main(argv)
+
+
+def test_a_crashed_run_resumes_to_the_same_weights_and_metrics(tmp_path, monkeypatch):
+    """Crash at game 58: checkpoint at 40, metrics row at 45 already written.
+
+    Logging every 15 leaves games in the metrics window at the checkpoint, so
+    the window has to be restored too. `--resume` must drop the row past the
+    checkpoint, append the rest, and end byte-identical to a run that never
+    stopped (bar the seconds column).
+    """
+    common = ["--games", "60", "--batch", "8", "--log-every", "15"]
+    common += ["--checkpoint-every", "20", "--runs-dir", str(tmp_path)]
+    assert td_train.main(["--run", "clean", *common]) == 0
+
+    new_game, calls = bitboard.new_game, []
+
+    def crash_at_58(rng):
+        calls.append(1)
+        if len(calls) == 58:
+            raise RuntimeError("simulated crash")
+        return new_game(rng)
+
+    monkeypatch.setattr(bitboard, "new_game", crash_at_58)
+    with pytest.raises(RuntimeError):
+        td_train.main(["--run", "crash", *common])
+    out = tmp_path / "crash"
+    assert (out / "checkpoint_latest.npz").exists()
+    assert "\n45," in (out / "metrics.csv").read_text()
+    monkeypatch.setattr(bitboard, "new_game", new_game)
+
+    # The command line may not override the run's own config.
+    argv = ["--run", "crash", "--resume", "--games", "5", "--runs-dir", str(tmp_path)]
+    assert td_train.main(argv) == 0
+
+    def rows(run):
+        text = (tmp_path / run / "metrics.csv").read_text().splitlines()
+        return [line.rsplit(",", 1)[0] for line in text]
+
+    assert rows("crash") == rows("clean")
+    games = [r.split(",")[0] for r in rows("crash")[1:]]
+    assert games == ["15", "30", "45", "60"]
+    np.testing.assert_array_equal(
+        NTupleNetwork.load(out / "weights.npz").weights,
+        NTupleNetwork.load(tmp_path / "clean" / "weights.npz").weights,
+    )
+    assert not (out / "checkpoint_latest.npz").exists()
+
+
+def test_resume_without_a_checkpoint_is_an_error(tmp_path):
+    argv = ["--run", "t", "--games", "3", "--runs-dir", str(tmp_path)]
+    assert td_train.main(argv) == 0
+    with pytest.raises(SystemExit):
+        td_train.main(["--run", "t", "--resume", "--runs-dir", str(tmp_path)])
+
+
+def test_stage2_is_four_6_tuples():
+    assert td_train.STAGES[2] == STAGE2
+    assert len(STAGE2) == 4 and {len(t) for t in STAGE2} == {6}
 
 
 def test_cli_refuses_the_held_out_seed_range(tmp_path):

@@ -19,6 +19,14 @@ from game2048.env import Env, Move
 # Stage 1: four 5-tuples, row-major cell numbers. Two row-plus-one shapes and
 # two 2x2-plus-one shapes; the 8 symmetries carry each one to every edge.
 STAGE1 = ((0, 1, 2, 3, 4), (4, 5, 6, 7, 8), (0, 1, 2, 4, 5), (4, 5, 6, 8, 9))
+# Stage 2: the same four shapes grown by one cell each, 16**6 entries per tuple.
+STAGE2 = (
+    (0, 1, 2, 3, 4, 5),
+    (4, 5, 6, 7, 8, 9),
+    (0, 1, 2, 4, 5, 6),
+    (4, 5, 6, 8, 9, 10),
+)
+STAGES = {1: STAGE1, 2: STAGE2}
 
 _GRID = np.arange(16).reshape(4, 4)
 # Each row maps a transformed board's cell to the original cell it reads.

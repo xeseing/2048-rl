@@ -3,7 +3,7 @@
 ## Project Overview
 - **Objective:** 2048 engine + an agent that learns to play it from self-play (N-tuple TD network, plus a DQN track for comparison), shipped as an installable app.
 - **Repo:** `github.com/xeseing/2048-rl` · **Branch model:** `task/<NN>-<slug>` → PR → squash to `main`
-- **Current Phase:** v0.3.0 milestone — TASK-12 done (#19); TASK-13 next, not started
+- **Current Phase:** TASK-13 in flight (attempt 1/4) — code and resume proven; full run awaiting go
 - **Circuit Breaker Limit:** 4 retries per task
 - **Contract:** `SPECS.md` · **Knowledge:** `memory/` · **Rules:** `CLAUDE.md` · **Git:** `GIT_WORKFLOW.md`
 
@@ -26,7 +26,7 @@
 | `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [x] DONE | #13 |
 | `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram; **re-enables nightly's baseline-eval step**, commented out in TASK-09 because the module did not exist | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [x] DONE | #14 |
 | `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [x] DONE | #19 |
-| `TASK-13` | **N-tuple Stage 2**: 4×6-tuples, checkpointing, resume | P0 | 1M games → ≥ 40,000 mean, ≥ 90% 2048 | [ ] PENDING | — |
+| `TASK-13` | **N-tuple Stage 2**: 4×6-tuples, checkpointing, resume | P0 | 1M games → ≥ 40,000 mean, ≥ 90% 2048 | [ ] IN PROGRESS | — |
 | `TASK-14` | Expectimax depth-3 reference ceiling | P2 | ≥ 20,000 mean, ≥ 80% 2048 | [ ] PENDING | — |
 | `TASK-15` | **DQN Track B**: one-hot planes, (2,1)/(1,2) convnet, Double DQN | P1 | Smoke run 10k steps, loss finite, no NaN | [ ] PENDING | — |
 | `TASK-16` | DQN full run + honest write-up vs Track A | P1 | ≥ 3,000 mean; comparison table produced | [ ] PENDING | — |
@@ -82,18 +82,19 @@ or slow engine is the single most expensive mistake available in this project.
 ## 🧪 Verification Log & Feedback Scratchpad
 <!-- Keep only the latest attempt. Older failures belong in memory/FAILURES.md -->
 
-### Current Active Task: `TASK-12`
-- **Branch:** `task/12-ntuple-stage1`
+### Current Active Task: `TASK-13`
+- **Branch:** `task/13-ntuple-stage2`
 - **Attempt:** 1 / 4
-- **Last Verification Result:** `pytest -q` → 300 passed; ruff clean. Run td-01
-  (100k games, seed 1, 4,251s). `evaluate --agent ntuple --games 1000 --seed-base
-  900000 --weights runs/td-01/weights.npz` → mean 64,492, 2048 rate 96.4%,
-  4096 rate 77.2%, gate PASS, exit 0. Mutation run: 8 mutants, 8 killed (1 survived
-  the first pass; test added).
-- **Command Run:** the gates above, plus the eval command
+- **Last Verification Result:** `pytest -q` → 303 passed; ruff clean; differential
+  5k games, 0 divergences. Resume mutation run: 6 mutants, 6 killed (the
+  window-restore mutant survived the first pass; test intervals de-aligned). Stage 2
+  smoke, 1,000 games, killed after game 500 and resumed from the game-401 checkpoint:
+  metrics identical bar seconds, weights bit-identical to an unkilled twin (done twice).
+- **Command Run:** the gates above; `td_train --stage 2 --games 1000 --log-every 100
+  --checkpoint-every 200`, `Stop-Process -Force`, then `td_train --run s2-crash --resume`
 - **Errors / Tracebacks:** `None`
-- **Corrective Action Plan:** `None`. Weights are local only until TASK-20 publishes
-  them; nightly cannot eval `ntuple` until then.
+- **Corrective Action Plan:** full run `td-02` (`--stage 2 --games 1000000`) waits for
+  the human's go. Expect ≥ 14h (FACTS). Open question: alpha decay (ADR-022, ADR-024).
 
 ---
 

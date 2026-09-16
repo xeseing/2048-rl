@@ -210,6 +210,15 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   47k mean. Stage 1 is 4,194,304 float32 weights: 16.8 MB in RAM, `weights.npz` 5.4 MB
   compressed. Release asset `td-01-weights.npz` on v0.3.0, SHA-256 in
   `runs/td-01/config.json` (`473a8924…b572`, re-downloaded and matched).
+- **Stage 2 (TASK-13):** 67,108,864 float32 weights = 268 MB in RAM; one checkpoint is
+  268,477,414 bytes on disk. Stage 2 smoke (1,000 games, seed 1) took 7.4s, but early
+  games are short: td-01 was at 49–54s per 1,000 games once its mean passed 57k, so
+  1M games is ≥ 14h even at Stage 1 speed. Dev machine: 23.7 GB RAM.
+- Resume is bit-identical: a Stage 2 smoke run hard-killed after game 500 and resumed
+  from its game-401 checkpoint ends with the same weights and metrics (bar seconds)
+  as an unkilled twin. `test_a_crashed_run_resumes_to_the_same_weights_and_metrics`
+  kills 6/6 mutants only because log-every (15) is not a divisor of checkpoint-every
+  (20); aligned, the window-restore mutant survives.
 - `np.add.at` is required in `NTupleNetwork.update`: fancy-index `+=` drops repeated
   indices, and a batch repeats them. Only `test_repeated_boards_in_one_batch_accumulate`
   catches the swap.
