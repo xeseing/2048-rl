@@ -99,7 +99,7 @@ or slow engine is the single most expensive mistake available in this project.
 ---
 
 ## 🏁 Shipped Deliverables & Metrics
-- **Latest Tag:** v0.1.0 (888a6cf)
+- **Latest Tag:** v0.2.0 (baselines; v0.1.0 at 888a6cf)
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
 - **Passing Tests:** 281 / 281
 - **Lint Status:** clean (`ruff` 0.16.7)
