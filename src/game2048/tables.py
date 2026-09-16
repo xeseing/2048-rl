@@ -108,7 +108,45 @@ def build_tables() -> tuple[tuple[int, ...], tuple[int, ...]]:
     return tuple(row_left), tuple(row_score)
 
 
+def _mirror_row(packed: int) -> int:
+    """Reverse the four nibbles of a row: [a b c d] -> [d c b a]."""
+    return (
+        ((packed & 0x000F) << 12)
+        | ((packed & 0x00F0) << 4)
+        | ((packed & 0x0F00) >> 4)
+        | ((packed & 0xF000) >> 12)
+    )
+
+
+def build_right_tables(
+    row_left: tuple[int, ...], row_score: tuple[int, ...]
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Derive the right-slide tables by mirroring the left ones.
+
+    Sliding a row right is sliding its mirror left and mirroring back. Building
+    the table means the bitboard engine never reverses a board at move time:
+    `right` becomes a plain lookup and `down` becomes transpose, lookup,
+    transpose. Costs about a megabyte and a tenth of a second at import.
+
+    Overflow is carried across explicitly rather than relying on the fact that
+    `OVERFLOW_ROW` happens to be a palindrome.
+    """
+    right = []
+    score = []
+    for packed in range(ROW_COUNT):
+        mirrored = _mirror_row(packed)
+        moved = row_left[mirrored]
+        if moved == OVERFLOW_ROW:
+            right.append(OVERFLOW_ROW)
+            score.append(OVERFLOW_SCORE)
+        else:
+            right.append(_mirror_row(moved))
+            score.append(row_score[mirrored])
+    return tuple(right), tuple(score)
+
+
 ROW_LEFT, ROW_SCORE = build_tables()
+ROW_RIGHT, ROW_SCORE_RIGHT = build_right_tables(ROW_LEFT, ROW_SCORE)
 
 
 def is_overflow(packed: int) -> bool:

@@ -121,6 +121,27 @@ def _slide_left(board: Board) -> tuple[Board, int]:
     return result, score
 
 
+def _slide_right(board: Board) -> tuple[Board, int]:
+    """Slide all four rows right. Raises on nibble overflow.
+
+    Uses the mirrored table rather than reversing the board twice, so `right`
+    costs the same as `left` and `down` the same as `up`.
+    """
+    result = 0
+    score = 0
+    for shift in ROW_SHIFTS:
+        row = (board >> shift) & ROW_MASK
+        moved = tables.ROW_RIGHT[row]
+        if moved == tables.OVERFLOW_ROW:
+            raise tables.NibbleOverflow(
+                f"row {row:#06x} -> {tables.decode_row(row)} merges past "
+                f"{tables.MAX_TILE}; board {board:#018x}"
+            )
+        result |= moved << shift
+        score += tables.ROW_SCORE_RIGHT[row]
+    return result, score
+
+
 def _to_left_frame(board: Board, direction: str) -> Board:
     """Reorient so `direction` becomes a left-move. Mirrors naive._to_left_frame."""
     if direction == "left":
@@ -150,12 +171,18 @@ def move(board: Board, direction: str) -> tuple[Board, int, bool]:
     `changed` False, exactly as `naive.move` behaves. A merge past the nibble
     ceiling does raise, because there is no board it could honestly return.
     """
-    if direction not in MOVES:
+    if direction == "left":
+        moved, score = _slide_left(board)
+    elif direction == "right":
+        moved, score = _slide_right(board)
+    elif direction == "up":
+        slid, score = _slide_left(transpose(board))
+        moved = transpose(slid)
+    elif direction == "down":
+        slid, score = _slide_right(transpose(board))
+        moved = transpose(slid)
+    else:
         raise ValueError(f"unknown direction {direction!r}, expected one of {MOVES}")
-
-    oriented = _to_left_frame(board, direction)
-    slid, score = _slide_left(oriented)
-    moved = _from_left_frame(slid, direction)
 
     if moved == board:
         return board, 0, False
