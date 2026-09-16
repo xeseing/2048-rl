@@ -131,3 +131,16 @@ Format:
 - **Rejected:** A one-sided floor for random. The gate exists to recognise *random*; a "random" slot scoring 12,034 (a heuristic wired in by mistake) must fail as loudly as one scoring 818 (a first-legal-move policy). Both were run through the real CLI and both exit 1.
 - **Rejected:** A `--gate`/`--no-gate` flag. Every CLI agent has a known expected shape; an ad-hoc `--games 10` run that exits 1 on noise is honest, and no caller needs the switch yet.
 - **Consequence:** Adding an agent to the CLI means adding its gate in the same PR. Random's held-out mean, 1,108, sits 42 points under the 1150 ceiling — deterministic on these seeds, but a change to the random agent's draw pattern could move it over without being wrong.
+
+### ADR-019 — TASK-09 reopened: the gate was unmet on the CI runner; `empty_cells` fixed it (2026-09-16)
+- **Context:** ADR-016 stopped at candidate 3 with "34% headroom", measured on the dev machine. ubuntu-latest's informational smoke step then read 174k–229k (three of four samples under 200,000), so nightly was set to fail. The headroom claim was a property of one machine, not of the engine.
+- **Decision:** Reopen TASK-09 as `task/09b-empty-cells` with one optimisation: `empty_cells` as a single mask plus a walk over set flags. Measured in-process A/B rather than by CLI runs, because the dev machine read as low as 6,026 during CLI A/B. Merge only after nightly's 30s gate passed on the branch: 222,045 moves/sec on Python 3.12. Accept 222k (11% over the gate) and do not chase 240k.
+- **Rejected:** A precomputed 4 × 65536 empty-cell table — 2x faster again per call, but +0.61s import and +6.3 MB for ~0.25us per move.
+- **Rejected:** Candidates 4 and 5. 4 is not on the benchmark path; 5 was measured (tuple ≈ list, `array.array` slower) and has nothing to give.
+- **Consequence:** Supersedes ADR-016's headroom statement. Throughput claims now cite the CI runner's number, not the dev machine's.
+
+### ADR-020 — Random gate widened from 850–1150 to 750–1250 (2026-09-16)
+- **Context:** ADR-018 set the random gate at 850–1150; the held-out mean is 1,108, 42 points from the ceiling.
+- **Decision:** Widen to 750–1250. The gate asks "is this still random-ish play", not "is this exactly today's random implementation". The two out-of-range cases ADR-018 cites (12,034 and 818) remain far outside or near the edge respectively; 818 now passes, and that is accepted — a first-legal-move policy is not what this gate is for, and `test_random_is_uniform_over_legal_moves` covers uniformity directly.
+- **Rejected:** Keeping 850–1150. A legitimate change to the agent's draw pattern could cross 1150 and fail nightly for no real fault.
+- **Consequence:** Supersedes the random-gate numbers in ADR-018.

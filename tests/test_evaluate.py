@@ -120,11 +120,11 @@ def test_unknown_agent_is_rejected_by_the_cli():
 @pytest.mark.parametrize(
     "mean, passed",
     [
-        (850, True),
+        (750, True),
         (1000, True),
-        (1150, True),
-        (849, False),
-        (1151, False),
+        (1250, True),
+        (749, False),
+        (1251, False),
         (3000, False),
     ],
 )

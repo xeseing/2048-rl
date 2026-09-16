@@ -61,14 +61,16 @@ cleared the gate with headroom; 4, 5 and 6 expired untaken.
 | 2 | `_reverse_rows` mask-and-shift | **taken** — 68,273 → 111,596; `_reverse_rows` 2.04us → 0.28us |
 | 3 | `ROW_RIGHT` table, deleting reversals from `right`/`down` | **taken** — 111,596 → 273,918 |
 | 4 | `legal_moves` single pass | expired — gate cleared first, and the benchmark loop calls `move` directly so this was never on the measured path |
-| 5 | Table storage: tuple vs list vs `array.array` | expired — untested, unmeasured |
+| 5 | Table storage: tuple vs list vs `array.array` | measured in #12, not taken — tuple 15.7ns, list 15.3ns, `array.array` 23.1ns per lookup |
 | 6 | (warning only: do not "optimise" `moved == board`) | still stands |
 
 **The profile moved as the work progressed.** After 1 and 2, the largest single cost
-per applied move was no longer anything on the list: `spawn` at 1.89us, of which
-`empty_cells` is 1.58us, against ~1.34us for an average `move`. It was not touched,
-because candidate 3 cleared the gate before it became necessary. It is the first place
-to look if throughput ever needs to go further.
+per applied move was `spawn` at 1.89us, of which `empty_cells` was 1.58us.
+
+**Reopened (#12).** The dev-machine headroom did not survive the CI runner: its smoke
+step read 174k–229k. `empty_cells` became a single mask (1.37us → 0.47us; in-process A/B
++10.8%), and nightly's 30s gate on the branch then read **222,045 moves/sec, PASS**
+(run 35097911041). Accepted at 222k; 240k is not being chased (ADR-019).
 
 ---
 
@@ -97,11 +99,11 @@ or slow engine is the single most expensive mistake available in this project.
 ---
 
 ## 🏁 Shipped Deliverables & Metrics
-- **Latest Tag:** none
+- **Latest Tag:** v0.1.0 (888a6cf)
 - **CI Status on `main`:** `lint` + `test` + `secret-scan` (each later task adds its own gate)
 - **Passing Tests:** 281 / 281
 - **Lint Status:** clean (`ruff` 0.16.7)
-- **Engine Throughput:** 267,359 moves/sec median, 236,847 worst of 7 (gate: 200,000)
+- **Engine Throughput:** 222,045 moves/sec, nightly 30s on ubuntu-latest / Python 3.12 (gate: 200,000)
 - **Differential Test:** 100,000 games, seed 7 — 0 divergences (TASK-08)
 - **Best Agent:** — (baselines only, held-out seeds 900000+: heuristic 11,548 mean, 7.0% 2048; random 1,108)
 - **Milestones Completed:** None
