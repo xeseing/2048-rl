@@ -4,6 +4,16 @@ One entry per session. Cap 10 entries; roll entries 11+ into a single summary li
 
 ---
 
+### 2026-09-17 — TASK-12, attempt 1/4
+- Re-verified TASK-11 on main first: 281 passed, random held-out mean 1,108, PASS.
+- Built `agents/ntuple.py` + `train/td_train.py` (batched self-play on the bitboard
+  engine, ADR-022). Smoke runs: batch 64 fine, 256 does not learn (F-001).
+- td-01, 100k games: held-out mean 64,492, 2048 rate 96.4%, 4096 rate 77.2%. That
+  already clears Stage 2's numeric targets (40k / 90% / 50%) without 6-tuples.
+- The working tree was found on `main` mid-session (reflog: a checkout from outside
+  this session); nothing had been committed, moved back to the task branch.
+- FACTS.md is ~210 lines against its ~60 cap; not trimmed in this task.
+
 ### 2026-09-16 — TASK-09 fix, TASK-10, TASK-11, v0.1.0 and v0.2.0
 - TASK-10 (#13) and TASK-11 (#14) landed. Held-out baselines, seed-base 900000:
   random mean 1,108; heuristic mean 11,548, 2048 rate 7.0%.
