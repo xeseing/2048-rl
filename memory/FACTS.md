@@ -61,3 +61,24 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 - `Env`'s spawn stream is identical to driving `naive` directly from the same seed —
   the env adds no hidden draws. Pinned by
   `test_the_env_spawns_exactly_what_the_naive_engine_would_from_the_same_seed`.
+- Windows sends arrow keys as TWO bytes: a 0xe0 or 0x00 prefix, then a scan code
+  (H up, P down, K left, M right). A bare b"H" is the letter H, not an arrow. POSIX
+  terminals send the same keys as 3-byte ANSI sequences (ESC [ A/B/C/D). `app.decode`
+  is a pure function over those byte sequences, split from the terminal I/O that
+  feeds it, so CI tests it on Linux without a terminal. (ADR-012)
+- `msvcrt` / `termios` are imported inside `read_key_from_terminal`, never at module
+  scope. A top-level `import msvcrt` makes `game2048.app` unimportable on the Linux
+  CI runner and every test in the file collapses at collection.
+- Everything in `render.py` returns a string and nothing there prints; all printing is
+  in `app.py`. `Env.render()` delegates to `render.frame`. Guarded by a capsys test.
+- `python -m game2048 play --seed N` is the entry point as of TASK-05;
+  `[project.scripts] 2048rl` is still deliberately absent until TASK-19 (ADR-008).
+- **Stale `.pyc` can keep a reverted mutant alive.** A `.pyc` is validated against the
+  source's mtime *truncated to one second* and its byte size. A mutate/run/restore
+  cycle finishes well inside one second, and `print(x)` is exactly as many bytes as
+  `return x`, so both checks matched and Python went on executing the mutant after
+  `env.py` had been restored byte-for-byte. Symptom: `Env.render()` returned `None` and
+  printed, while `inspect.getsource` showed the correct code — `getsource` reads the
+  `.py`, not the loaded bytecode, so it cannot detect this. Any mutation harness must
+  run its subprocess with `PYTHONDONTWRITEBYTECODE=1` and delete `src/**/__pycache__`
+  around each mutant. Running the full suite after a mutation run catches it too.
