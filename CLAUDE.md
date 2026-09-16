@@ -80,6 +80,8 @@ Never start editing code before step 8.
   (`config.json`, `metrics.csv`, `summary.md`) is committed.
 - No training run longer than 30 minutes without first proving the pipeline on a
   1000-game smoke run.
+- **Seeds 900000 and up are the held-out eval range** (`train/evaluate.py`). No
+  training, tuning, or test code may seed from it; only the eval harness does.
 
 ---
 

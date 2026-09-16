@@ -174,3 +174,11 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
 - A monotonicity mutant that checked rows only survived a suite whose boards were all
   symmetric in rows and columns. Feature tests need at least one board where rows and
   columns disagree.
+- **Held-out eval seeds are 900000+** (CLAUDE.md hard constraints). Tests use 4200+,
+  heuristic tuning used 5000–6299.
+- **Eval harness, 1000 games, seed-base 900000 (TASK-11):** random mean 1,108, median
+  1,070, max 3,284, 0.141 ms/move; heuristic mean 11,548, median 10,644, max 36,828,
+  2048 rate 7.0%, 4096 rate 0%, 0.339 ms/move, 239s on the dev machine. Both gates
+  pass. Heuristic/random = 10.4x.
+- The GitHub Actions default `run:` shell on Linux is `bash -eo pipefail`, which is what
+  lets nightly `| tee` an eval table without swallowing the gate's exit code.
