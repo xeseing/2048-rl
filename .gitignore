@@ -39,3 +39,4 @@ src/game2048/_tables_cache.npy
 .idea/
 .vscode/
 *.log
+watch.py
