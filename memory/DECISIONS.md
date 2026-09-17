@@ -173,3 +173,10 @@ Format:
 - **Rejected:** A compressed checkpoint, which saves disk but costs CPU on every save. Also rejected: keeping every checkpoint, which is 100 × 268 MB over a 1M-game run.
 - **Rejected:** Truncating metrics.csv to the checkpoint by line count. Filtering on the `games` column is correct even when the checkpoint falls between two log rows.
 - **Consequence:** Wall time lost between the last checkpoint and a crash is not counted in `seconds`. Alpha stays constant (ADR-022); decay is still open.
+
+### ADR-025 — td-02 uses constant alpha: decay didn't help at Stage 1 scale; deferred for Stage 2 (2026-09-17)
+- **Context:** SPECS §4.4 says alpha is "decayed", and ADR-022 deferred that. Before the 14h Stage 2 run, a paired Stage 1 probe (`td-decay-probe`: 100k games, seed 1, alpha 0.1 → 0.01 linear) was compared with td-01 (constant 0.1). The human's rule: decay is adopted only if its held-out 8192 rate is ≥ 6%.
+- **Evidence:** Held-out, 1,000 games, seeds 900000+. Decay: mean 62,589, 2048 rate 92.5%, 4096 rate 71.0%, 8192 rate 4.5% (45 games). Constant: 64,492, 96.4%, 77.2%, 3.9% (39 games). The 0.6-point 8192 difference is within noise for n = 1,000. On the training curve, decay trailed at every 10k mark: −5.0% mean at 50k, −1.4% at 90k, −1.6% at 100k.
+- **Decision:** decay didn't help at Stage 1 scale; deferred for Stage 2. td-02 runs with constant alpha 0.1. `--alpha-schedule linear` stays in the trainer.
+- **Rejected:** Running td-02 with decay anyway on the strength of the narrowing gap. The narrowing suggests decay might catch up over a longer horizon, but the 8192 rate, which is the reason for Stage 2, did not move materially, and 14h is too long to spend on a hunch.
+- **Consequence:** SPECS §4.4's "decayed" is still unmet. A later task can revisit it with a different schedule (TC learning, or decay that starts only after the plateau).

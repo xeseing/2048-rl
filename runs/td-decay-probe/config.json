@@ -1,0 +1,44 @@
+{
+  "run": "td-decay-probe",
+  "games": 100000,
+  "seed": 1,
+  "alpha_schedule": "linear",
+  "alpha_start": 0.1,
+  "alpha_end": 0.01,
+  "batch": 64,
+  "log_every": 1000,
+  "runs_dir": "runs",
+  "stage": 1,
+  "checkpoint_every": 10000,
+  "alpha_cadence": "every batched update, from games finished run-wide",
+  "tuples": [
+    [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    [
+      0,
+      1,
+      2,
+      4,
+      5
+    ],
+    [
+      4,
+      5,
+      6,
+      8,
+      9
+    ]
+  ]
+}
