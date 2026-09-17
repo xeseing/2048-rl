@@ -180,3 +180,10 @@ Format:
 - **Decision:** decay didn't help at Stage 1 scale; deferred for Stage 2. td-02 runs with constant alpha 0.1. `--alpha-schedule linear` stays in the trainer.
 - **Rejected:** Running td-02 with decay anyway on the strength of the narrowing gap. The narrowing suggests decay might catch up over a longer horizon, but the 8192 rate, which is the reason for Stage 2, did not move materially, and 14h is too long to spend on a hunch.
 - **Consequence:** SPECS §4.4's "decayed" is still unmet. A later task can revisit it with a different schedule (TC learning, or decay that starts only after the plateau).
+
+### ADR-026 — td-02 launch: constant alpha, and the open question on decay at 6-tuples (2026-09-17)
+- **Context:** ADR-025 settled td-02 on constant alpha. This entry records how the human framed that decision and what is still open, before the 1M-game Stage 2 run.
+- **Decision:** At Stage 1, decay lost 1.6% of training mean at 100k, and its held-out 8192 rate was 4.5% against 3.9% (the human's note said 5.4%; the measured figure is 4.5%, per td-decay-probe/summary.md). That was rejected for Stage 2 as too small a win for the risk. td-02 runs `--stage 2 --games 1000000`, constant alpha 0.1, checkpoint every 10k.
+- **Rejected:** decay for td-02 (ADR-025).
+- **OPEN:** Does the Stage 1 finding hold for 6-tuples? With 16x more table entries, each entry is updated less often, which could make results more or less sensitive to alpha. Unknown. **If td-02's held-out 8192 rate is below 30%, decay is the first thing to try in a follow-up run.**
+- **Consequence:** Disk holds one checkpoint at a time (ADR-024), about 268 MB (537 MB for a moment during the swap), not 100 of them.

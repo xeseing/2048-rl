@@ -93,10 +93,9 @@ or slow engine is the single most expensive mistake available in this project.
 - **Command Run:** the gates above; `td_train --stage 2 --games 1000 --log-every 100
   --checkpoint-every 200`, `Stop-Process -Force`, then `td_train --run s2-crash --resume`
 - **Errors / Tracebacks:** `None`
-- **Corrective Action Plan:** decay probe done (td-decay-probe): held-out 8192 rate
-  4.5% vs td-01's 3.9%, below the 6% bar, so td-02 uses constant alpha (ADR-025).
-  Stage 2 kill-and-resume smoke passed with decay as well. td-02 waits for the human's
-  go: `td_train --run td-02 --stage 2 --games 1000000`.
+- **Corrective Action Plan:** td-02 launched 2026-09-17 (`td_train --run td-02 --stage 2
+  --games 1000000`, constant alpha per ADR-025/026), with a watcher. If it crashes:
+  `td_train --run td-02 --resume`. When it finishes: held-out eval, then page the human.
 
 ---
 
