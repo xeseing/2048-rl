@@ -39,4 +39,5 @@ src/game2048/_tables_cache.npy
 .idea/
 .vscode/
 *.log
-watch.py
+# Scratch watchers: watch.py, watch_stage1.py, watch_learning.py
+watch*.py

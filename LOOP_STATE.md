@@ -3,7 +3,7 @@
 ## Project Overview
 - **Objective:** 2048 engine + an agent that learns to play it from self-play (N-tuple TD network, plus a DQN track for comparison), shipped as an installable app.
 - **Repo:** `github.com/xeseing/2048-rl` · **Branch model:** `task/<NN>-<slug>` → PR → squash to `main`
-- **Current Phase:** TASK-13 in flight (attempt 1/4) — code and resume proven; full run awaiting go
+- **Current Phase:** TASK-13 done (attempt 1/4) — td-02 held out 126,454 mean / 95.5% 2048 / 89.7% 4096, gate PASS. Next: TASK-14.
 - **Circuit Breaker Limit:** 4 retries per task
 - **Contract:** `SPECS.md` · **Knowledge:** `memory/` · **Rules:** `CLAUDE.md` · **Git:** `GIT_WORKFLOW.md`
 
@@ -26,7 +26,7 @@
 | `TASK-10` | Random + heuristic 1-ply agents | P1 | 1000 seeded games each via a plain loop (no eval harness yet): zero `IllegalMove` raised; heuristic mean ≥ 3,000 and ≥ 10× random | [x] DONE | #13 |
 | `TASK-11` | `evaluate.py`: 1000 held-out seeds → score stats + max-tile histogram; **re-enables nightly's baseline-eval step**, commented out in TASK-09 because the module did not exist | P0 | Random agent reports ~1,000 mean over 1000 held-out seeds | [x] DONE | #14 |
 | `TASK-12` | **N-tuple Stage 1**: 4×5-tuples, symmetries, TD(0) afterstate loop | P0 | 100k games → ≥ 15,000 mean, ≥ 50% 2048 | [x] DONE | #19 |
-| `TASK-13` | **N-tuple Stage 2**: 4×6-tuples, checkpointing, resume | P0 | 1M games → ≥ 40,000 mean, ≥ 90% 2048 | [ ] IN PROGRESS | — |
+| `TASK-13` | **N-tuple Stage 2**: 4×6-tuples, checkpointing, resume | P0 | 1M games → ≥ 40,000 mean, ≥ 90% 2048 | [x] DONE | — |
 | `TASK-14` | Expectimax depth-3 reference ceiling | P2 | ≥ 20,000 mean, ≥ 80% 2048 | [ ] PENDING | — |
 | `TASK-15` | **DQN Track B**: one-hot planes, (2,1)/(1,2) convnet, Double DQN | P1 | Smoke run 10k steps, loss finite, no NaN | [ ] PENDING | — |
 | `TASK-16` | DQN full run + honest write-up vs Track A | P1 | ≥ 3,000 mean; comparison table produced | [ ] PENDING | — |

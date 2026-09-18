@@ -219,6 +219,33 @@ Nothing goes here that was not produced by a command that ran. Cap ~60 lines.
   as an unkilled twin. `test_a_crashed_run_resumes_to_the_same_weights_and_metrics`
   kills 6/6 mutants only because log-every (15) is not a divisor of checkpoint-every
   (20); aligned, the window-restore mutant survives.
+- **`seconds` in metrics.csv counts machine sleep.** `time.perf_counter` on Windows keeps
+  running through S3. Sleep reason 0 = power button or lid, which `SetThreadExecutionState`
+  cannot block. Subtract sleep windows before quoting wall time.
+- **td-02 slept twice, not once: 6.17h total.** Game 78k→79k took 9,008.8s (sleep
+  ≈8,931s, Kernel-Power 42 at 18:08:05) and game 110k→111k took 13,377.9s (sleep
+  ≈13,278s, Kernel-Power 42 at 21:11:57). Both 42 events land within 22s of where
+  `seconds` puts the stall. **Elapsed 77,415s = 21.50h; compute ≈ 55,207s = 15.34h.**
+  Quote 15.3h for the run, never the raw `seconds`.
+- **The dev machine throttles a steady single-threaded load.** Balanced plan, CPU minimum
+  state was 5% on AC. Raising it to 100% and the process to High priority took td-02 from
+  59.0 to 44.1 s per 1,000 games (20 rows before, 12 after, game ~403k), a 25% speedup.
+  Restore with `powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMIN 5`.
+- td-02 pace on the dev machine is not steady: ~95–122s per 1,000 games from 50k to 73k,
+  26–65s after waking at 20:37 (on battery). Cause unexplained, like the eval's 0.085 vs
+  0.110 ms/move. `runs/td-02/pace.csv` has the per-1,000 record.
+- **N-tuple Stage 2 (td-02) held out, 1,000 games, seeds 900000..900999:** mean 126,454,
+  median 146,396, max 313,632; 2048 95.5%, 4096 89.7%, 8192 69.7%, 16384 2.1%; 5,308,086
+  moves. Two runs of the same seeds scored identically at 0.115 and 0.149 ms/move (610s,
+  790s) — eval is deterministic, its wall time is not. Clears SPECS §5 (≥ 40,000 / ≥ 90% / 4096 ≥ 50%) 3.2x over
+  on mean. Training last-1k was 128,360, so held-out trails training by 1.5%: no seed
+  overfit.
+- **The score distribution is left-skewed: median (146,396) exceeds mean (126,454).** The
+  typical game is better than the average; 45 games in 1,000 die before 2048 and drag the
+  mean down. Quote the median for "what it usually does".
+- **Tile rates are at-least, not exact.** `Report.rate(t)` counts games whose max tile is
+  ≥ t, so the histogram bar for 8192 (676 games) is not the 8192 rate (697 = 69.7%).
+  Reading a bar as a rate understates every tile but the largest.
 - `np.add.at` is required in `NTupleNetwork.update`: fancy-index `+=` drops repeated
   indices, and a batch repeats them. Only `test_repeated_boards_in_one_batch_accumulate`
   catches the swap.

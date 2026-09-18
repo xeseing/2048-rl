@@ -95,8 +95,8 @@ GATES = {
         lambda r: r.mean >= 3000 and r.rate(2048) >= 0.05,
     ),
     "ntuple": (
-        "mean >= 15000 and 2048 rate >= 50%",
-        lambda r: r.mean >= 15000 and r.rate(2048) >= 0.5,
+        "mean >= 40000, 2048 rate >= 90%, 4096 rate >= 50%",
+        lambda r: r.mean >= 40000 and r.rate(2048) >= 0.9 and r.rate(4096) >= 0.5,
     ),
 }
 

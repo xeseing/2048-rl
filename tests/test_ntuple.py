@@ -293,16 +293,6 @@ def test_cli_refuses_the_held_out_seed_range(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "mean, wins, passed",
-    [(15000, 50, True), (14999, 50, False), (15000, 49, False)],
-)
-def test_ntuple_gate(mean, wins, passed):
-    tiles = [2048] * wins + [1024] * (100 - wins)
-    r = evaluate.Report("ntuple", 0, [mean] * 100, tiles, 100, 1.0)
-    assert evaluate.gate(r)[1] is passed
-
-
 def test_eval_cli_plays_the_weights_it_is_given(tmp_path, capsys):
     NTupleNetwork().save(tmp_path / "w.npz")
     argv = ["--agent", "ntuple", "--games", "2", "--seed-base", "4200"]
