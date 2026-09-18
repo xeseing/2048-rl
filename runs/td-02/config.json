@@ -44,5 +44,12 @@
       9,
       10
     ]
-  ]
+  ],
+  "weights": {
+    "file": "weights.npz",
+    "sha256": "a0a5b2687f6e0d0c8d6e9fd3ed5701d86eee18160ea2684cee1a2d1c49138a7c",
+    "bytes": 78907541,
+    "release": "v0.4.0",
+    "asset": "td-02-weights.npz"
+  }
 }
