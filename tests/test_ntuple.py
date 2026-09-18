@@ -10,6 +10,8 @@ What must hold:
 * The agent is greedy on `r + V`, stays legal, and leaves the env untouched.
 """
 
+import json
+
 import numpy as np
 import pytest
 from test_env import fingerprint, with_board
@@ -17,6 +19,7 @@ from test_env import fingerprint, with_board
 from game2048 import bitboard
 from game2048.agents.ntuple import (
     STAGE1,
+    STAGE2,
     NTupleAgent,
     NTupleNetwork,
     grid_exponents,
@@ -192,6 +195,94 @@ def test_cli_writes_the_run_manifest_and_refuses_to_overwrite(tmp_path):
         td_train.main(argv)
 
 
+def test_a_crashed_run_resumes_to_the_same_weights_and_metrics(tmp_path, monkeypatch):
+    """Crash at game 58: checkpoint at 40, metrics row at 45 already written.
+
+    Logging every 15 leaves games in the metrics window at the checkpoint, so
+    the window has to be restored too. `--resume` must drop the row past the
+    checkpoint, append the rest, and end byte-identical to a run that never
+    stopped (bar the seconds column).
+    """
+    common = ["--games", "60", "--batch", "8", "--log-every", "15"]
+    common += ["--alpha-schedule", "linear", "--alpha-end", "0.01"]
+    common += ["--checkpoint-every", "20", "--runs-dir", str(tmp_path)]
+    assert td_train.main(["--run", "clean", *common]) == 0
+
+    new_game, calls = bitboard.new_game, []
+
+    def crash_at_58(rng):
+        calls.append(1)
+        if len(calls) == 58:
+            raise RuntimeError("simulated crash")
+        return new_game(rng)
+
+    monkeypatch.setattr(bitboard, "new_game", crash_at_58)
+    with pytest.raises(RuntimeError):
+        td_train.main(["--run", "crash", *common])
+    out = tmp_path / "crash"
+    assert (out / "checkpoint_latest.npz").exists()
+    assert "\n45," in (out / "metrics.csv").read_text()
+    monkeypatch.setattr(bitboard, "new_game", new_game)
+
+    # The command line may not override the run's own config.
+    argv = ["--run", "crash", "--resume", "--games", "5", "--runs-dir", str(tmp_path)]
+    assert td_train.main(argv) == 0
+
+    def rows(run):
+        text = (tmp_path / run / "metrics.csv").read_text().splitlines()
+        return [line.rsplit(",", 1)[0] for line in text]
+
+    assert rows("crash") == rows("clean")
+    games = [r.split(",")[0] for r in rows("crash")[1:]]
+    assert games == ["15", "30", "45", "60"]
+    np.testing.assert_array_equal(
+        NTupleNetwork.load(out / "weights.npz").weights,
+        NTupleNetwork.load(tmp_path / "clean" / "weights.npz").weights,
+    )
+    assert not (out / "checkpoint_latest.npz").exists()
+
+
+def test_linear_decay_reaches_the_update_and_the_metrics(tmp_path, monkeypatch):
+    steps = []
+    update = NTupleNetwork.update
+
+    def spy(self, exponents, deltas, alpha):
+        steps.append(alpha)
+        update(self, exponents, deltas, alpha)
+
+    monkeypatch.setattr(NTupleNetwork, "update", spy)
+    argv = ["--run", "t", "--games", "40", "--batch", "8", "--log-every", "20"]
+    argv += ["--alpha-schedule", "linear", "--alpha-start", "0.1"]
+    argv += ["--alpha-end", "0.01", "--runs-dir", str(tmp_path)]
+    assert td_train.main(argv) == 0
+    assert steps[0] == 0.1 and steps == sorted(steps, reverse=True)
+    assert 0.01 < steps[-1] < 0.02  # the last update happens before game 40 ends
+    rows = (tmp_path / "t" / "metrics.csv").read_text().splitlines()
+    assert rows[0] == "games,mean_score,rate_2048,max_score,alpha,seconds"
+    assert [r.split(",")[4] for r in rows[1:]] == ["0.055", "0.01"]
+    config = json.loads((tmp_path / "t" / "config.json").read_text())
+    assert (config["alpha_schedule"], config["alpha_start"]) == ("linear", 0.1)
+    assert config["alpha_end"] == 0.01 and "alpha_cadence" in config
+
+
+def test_alpha_end_needs_the_linear_schedule(tmp_path):
+    for extra in (["--alpha-end", "0.01"], ["--alpha-schedule", "linear"]):
+        with pytest.raises(SystemExit):
+            td_train.main(["--run", "t", "--runs-dir", str(tmp_path), *extra])
+
+
+def test_resume_without_a_checkpoint_is_an_error(tmp_path):
+    argv = ["--run", "t", "--games", "3", "--runs-dir", str(tmp_path)]
+    assert td_train.main(argv) == 0
+    with pytest.raises(SystemExit):
+        td_train.main(["--run", "t", "--resume", "--runs-dir", str(tmp_path)])
+
+
+def test_stage2_is_four_6_tuples():
+    assert td_train.STAGES[2] == STAGE2
+    assert len(STAGE2) == 4 and {len(t) for t in STAGE2} == {6}
+
+
 def test_cli_refuses_the_held_out_seed_range(tmp_path):
     with pytest.raises(SystemExit):
         td_train.main(["--run", "t", "--seed", "900000", "--runs-dir", str(tmp_path)])
@@ -200,16 +291,6 @@ def test_cli_refuses_the_held_out_seed_range(tmp_path):
 # ---------------------------------------------------------------------------
 # Eval wiring
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "mean, wins, passed",
-    [(15000, 50, True), (14999, 50, False), (15000, 49, False)],
-)
-def test_ntuple_gate(mean, wins, passed):
-    tiles = [2048] * wins + [1024] * (100 - wins)
-    r = evaluate.Report("ntuple", 0, [mean] * 100, tiles, 100, 1.0)
-    assert evaluate.gate(r)[1] is passed
 
 
 def test_eval_cli_plays_the_weights_it_is_given(tmp_path, capsys):

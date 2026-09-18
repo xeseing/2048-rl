@@ -142,6 +142,33 @@ def test_heuristic_gate_needs_score_and_2048_rate(mean, wins, passed):
     assert evaluate.gate(r)[1] is passed
 
 
+@pytest.mark.parametrize(
+    "mean, wins_2048, wins_4096, passed",
+    [
+        (40000, 90, 50, True),
+        (39999, 90, 50, False),  # mean floor
+        (40000, 89, 50, False),  # 2048 rate floor
+        (40000, 90, 49, False),  # 4096 rate floor
+        (126454, 96, 90, True),  # td-02 held out, seeds 900000..900999
+    ],
+)
+def test_ntuple_gate_needs_score_and_both_tile_rates(
+    mean, wins_2048, wins_4096, passed
+):
+    """SPECS section 5: Stage 2 is mean >= 40,000, 2048 >= 90%, 4096 >= 50%.
+
+    `rate(t)` counts games reaching *at least* t, so the 4096 games are a
+    subset of the 2048 games and the tile list is built largest-first.
+    """
+    tiles = (
+        [4096] * wins_4096
+        + [2048] * (wins_2048 - wins_4096)
+        + [1024] * (100 - wins_2048)
+    )
+    r = report([mean] * 100, max_tiles=tiles, agent="ntuple")
+    assert evaluate.gate(r)[1] is passed
+
+
 def test_every_cli_agent_has_a_gate():
     assert set(evaluate.GATES) == set(evaluate.AGENTS)
 
